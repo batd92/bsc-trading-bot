@@ -1,0 +1,18 @@
+{
+  "name": "no2l-script",
+  "version": "1.0.0",
+  "description": "Written By TàoBa.",
+  "main": "no2l-script.js",
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "ethers": "^5.5.1",
+    "isomorphic-fetch": "3.0.0",
+    "lodash": "4.17.21"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "main": "node no2l-script.js"
+  },
+  "author": "",
+  "license": "ISC"
+}
