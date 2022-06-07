@@ -6,6 +6,7 @@
 const { msg, config, cache, network } = require('./classes/main.js');
 const ethers = require('ethers');
 const chalk = require('chalk');
+const Until = require('./classes/until');
 
 let ConsoleLog = console.log;
 
@@ -62,10 +63,10 @@ process.on('uncaughtException', (err, origin) => {
     }
 
     // Check if has enough input balance
-    // if ((network.bnb_balance < transaction.investmentAmount)) {
-    //     msg.error(`[error::no2l-script] You don't have enough input balance for this transaction.`);
-    //     process.exit();
-    // }
+    if ((network.bnb_balance < transaction.investmentAmount)) {
+        msg.error(`[error::no2l-script] You don't have enough input balance for this transaction.`);
+        process.exit();
+    }
 
     // Fetch pair
     const pair = await network.getPair(contracts.input, contracts.output);
@@ -87,18 +88,22 @@ process.on('uncaughtException', (err, origin) => {
 
     // Get starting tick
     const startingTick = Math.floor(new Date().getTime() / 1000);
-
+    let receipt;
     // Purchase token [bnb -> token (through bnb)]
-    // const receipt = await network.transactToken(
-    //     contracts.input, 
-    //     contracts.output
-    // );
+    if (transaction.modeManual === '--buy-only') {
+        receipt = await network.transactToken(
+            contracts.input, 
+            contracts.output
+        );
+    }
 
-    // Purchase token [bnb -> token (through bnb)]
-    const receipt = await network.transactFromTokenToBNB(
-        contracts.input, 
-        contracts.output
-    );
+    // Sell token [token -> BNB (through bnb)]
+    if (transaction.modeManual === '--sell-only') {
+        receipt = await network.transactFromTokenToBNB(
+            contracts.input, 
+            contracts.output
+        );
+    }
 
     if (receipt == null) {
         msg.error('[error::no2l-script] Could not retrieve receipt from buy tx.');
@@ -111,10 +116,8 @@ process.on('uncaughtException', (err, origin) => {
     console.log(chalk.hex('#2091F6')('• ') + chalk.hex('#EBF0FA')(`https://bscscan.com/tx/${receipt.logs[1].transactionHash}`));
     console.log(chalk.hex('#2091F6').inverse('========================================================\n'));
 
-    // Save cache just to be sure
-    // await cache.save();
-
     msg.success(`Finished in ${((Math.floor(new Date().getTime() / 1000)) - startingTick)} seconds.`);
+    Until.saveFileHistoryTrans(wallet.myAddress,[contracts.input, contracts.output].join('_'), modeManual, receipt);
     process.exit();
 
 })();

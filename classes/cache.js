@@ -10,10 +10,6 @@ const _ = require("lodash");
 
 const apiPairAddressPancakeSwap = "https://api.pancakeswap.info/api/v2/pairs";
 const pathPairsFormPancakeSwap = "storage.local/pairsFormPancakeSwap.json";
-
-const ddMMYY = (d) =>
-  d.getDate() + "-" + (d.getMonth() + 1) + "-" + d.getFullYear();
-
 class Cache {
   async load(wallet) {
     this.walletAddress = wallet;
@@ -43,7 +39,8 @@ class Cache {
     } else {
       this.pairsFormPancakeSwap = await fetch(apiPairAddressPancakeSwap).then(function (response) {
         if (response.status >= 400) {
-          throw new Error("Bad response from server");
+          console.log("Can not load 1000 pair for pancake swap !!!");
+          return {};
         }
         return response.json();
       });
@@ -183,18 +180,6 @@ class Cache {
       this.fileToken,
       JSON.stringify(this[this.walletAddress.toString()])
     );
-  }
-
-  /**
-   * Save file history
-   * @param {*} token
-   * @param {*} data
-   */
-  async saveHistory(token, data) {
-    const pathHistory = `storage.local/${ddMMYY(
-      new Date()
-    )}/${this.walletAddress.toString()}/${token}.json`;
-    await fs.writeFileSync(pathHistory, JSON.stringify(data));
   }
 
   getInfoTokenFormCache(address) {

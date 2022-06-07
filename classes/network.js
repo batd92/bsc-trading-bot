@@ -7,7 +7,6 @@
 const ethers = require('ethers');
 const msg = require('./msg.js');
 const cache = require('./cache.js');
-const _gas_limit = [];
 
 class Network {
 	async load(config) {
@@ -109,8 +108,8 @@ class Network {
 				this.router.address,
 				maxInt,
 				{
-					'gasLimit': this.config.transaction.gas_limit,
-					'gasPrice': this.config.transaction.gas_price,
+					'gasLimit': this.config.transaction.gas_limit_approve,
+					'gasPrice': this.config.transaction.gas_price_approve,
 					'nonce': (this.getNonce())
 				}
 			);
@@ -142,8 +141,8 @@ class Network {
 				this.router.address,
 				maxInt,
 				{
-					'gasLimit': this.config.transaction.gas_limit,
-					'gasPrice': this.config.transaction.gas_price,
+					'gasLimit': this.config.transaction.gas_limit_approve,
+					'gasPrice': this.config.transaction.gas_price_approve,
 					'nonce': (this.getNonce())
 				}
 			);
@@ -204,6 +203,7 @@ class Network {
 				}
 			);
 
+			// TODO: Check (fee gas + fee buy) <= money in wallet => gas increase
 			// Check if is using enough gas.
 			if (gas > parseInt(this.config.transaction.gas_limit)) {
 				msg.error(`[error::simulate] The transaction requires at least ${gas} gas, your limit is ${this.config.transactiontransaction.gas_limit}.`);
@@ -211,7 +211,7 @@ class Network {
 			}
 			return true;
 		} catch (e) {
-			// => Xử lí ở đây để tăng fee gas
+			// TODO: Check (fee gas + fee buy) <= money in wallet => gas increase
 			console.log(`[error::estimate_gas] ${e}`);
 			//return this.estimateTransaction(amountIn, amountOutMin, contracts);
 			process.exit();

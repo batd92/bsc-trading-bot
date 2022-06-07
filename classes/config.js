@@ -5,96 +5,66 @@
 /*=================================================*/
 
 const ethers = require("ethers");
-const fetch = require('isomorphic-fetch');
+const Until = require('./until');
 
-const config = {
+const GAS_PRICE_APPROVE = '5';
+const GAS_LIMIT_APPROVE = 21000;
+
+// const modeManual = '--sell-only'; // Enables manual sell mode. This will only sell the token and then exit.
+const modeManual = '--buy-only';  // Enables manual buy mode. This will only buy the token and then exit.
+
+// Load data from .env
+const env = {
   // [WALLET]
-  SECRET_KEY:
-    "lady ski they panther piece purpose logic retreat opinion unhappy swear common",
-  WSS_NODE: "wss://bsc-ws-node.nariox.org:443",
-  IS_WSS: false,
-  HTTPS_NODE: "https://data-seed-prebsc-1-s1.binance.org:8545",
-  RECIPIENT: '0x1370715e3c4B4dda15DF6d15140D90faF521FeCf',
+  SECRET_KEY:"lady ski they panther piece purpose logic retreat opinion unhappy swear common", // => Pharse wallet
+  WSS_NODE: "wss://bsc-ws-node.nariox.org:443", // => RPC URL nếu bạn setting websocket
+  IS_WSS: false, // Chỉ đỉnh connect ví metamask theo cách nào. Theo websocket hay https
+  HTTPS_NODE: "https://data-seed-prebsc-1-s1.binance.org:8545", // => RPC URL nếu bạn setting cho https
+  RECIPIENT: '0x1370715e3c4B4dda15DF6d15140D90faF521FeCf', // Địa chỉ ví nhận, địa chỉ ví metamask mà mua bán
 
   // [CONTRACTS]
-  INPUT: "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
-  OUTPUT: "0x8076c74c5e3f5852037f31ff0093eeb8c8add8d3",
+  INPUT: "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c", // => Tonken bị bán đi để mua token mới
+  OUTPUT: "0x8076c74c5e3f5852037f31ff0093eeb8c8add8d3", // => Token cần mua
 
   // [TRANSACTION]
-  GAS_LIMIT: 250000,
-  GAS_PRICE: '5',
-  InvestmentAmount: 10, // => // Investment amount per token
-  BUY_SLIPPAGE: 10, // 
+  GAS_LIMIT: 250000, // => // Phí lượng gas tối đa mà có thể trả trên mỗi giao dịch => Càng nhiều => Càng nhanh
+  GAS_PRICE: '5', // => // Giá mà có thể trả cho miner/validator trong mỗi lần giao dịch => Càng nhiều => Càng nhanh
+  InvestmentAmount: 0.01, // => Investment amount per token => Số BNB mua cho mỗi mã thông báo
+  BUY_SLIPPAGE: 10, // => Phần trăm trượt giá
   MIN_LIQUIDITY: 100, // => Số lượng BNB của pool ít nhất
+  MAX_LIQUIDITY: 10000 // => Số lượng BNB của pool max nhất
 };
 
 class Config {
   async load(_name) {
     this.cfg = {
       contracts: {
-        input: this.getContractAddressByName("bnb"),
-        output: this.getContractAddressByName( config.OUTPUT || "busd"),
+        input: Until.getContractAddressByName("bnb"),
+        output: Until.getContractAddressByName(env.OUTPUT || "busd"),
       },
       transaction: {
-        gas_price: ethers.utils.parseUnits(config.GAS_PRICE, "gwei"),
-        gas_limit: config.GAS_LIMIT,
-        buy_slippage: config.BUY_SLIPPAGE,
-        investmentAmount: config.InvestmentAmount,
-        min_liquidity: config.MIN_LIQUIDITY,
-        maxLiquidity: 10,
-        stopLoss: 0,
-        maxBuyTax: 2, 			// max buy tax
-        minBuyTax: 0,			  // min buy tax
-        maxSellTax: 2,			// max sell tax
-        minSellTax: 0,      // min sell tax
+        gas_price: ethers.utils.parseUnits(env.GAS_PRICE, "gwei"),
+        gas_limit: env.GAS_LIMIT,
+        buy_slippage: env.BUY_SLIPPAGE,
+        investmentAmount: env.InvestmentAmount,
+        min_liquidity: env.MIN_LIQUIDITY,
+        maxLiquidity: env.MAX_LIQUIDITY,
         percentOfTokensToSellProfit: 100, // Enter percent of tokens to sell when profit reached
-        percentOfTokensToSellLoss: 0 // Enter percent of tokens to sell when stop loss reached
+        percentOfTokensToSellLoss: 0, // Enter percent of tokens to sell when stop loss reached,
+        gas_price_approve: ethers.utils.parseUnits(GAS_PRICE_APPROVE, "gwei"),
+        gas_limit_approve: GAS_LIMIT_APPROVE,
+        modeManual
       },
       wallet: {
-        is_wss: config.IS_WSS,
-        secret_key: `${config.SECRET_KEY}`,
-        wss_node: `${config.WSS_NODE}`,
-        https_node: `${config.HTTPS_NODE}`,
-        myAddress : config.RECIPIENT
+        is_wss: env.IS_WSS,
+        secret_key: env.SECRET_KEY,
+        wss_node: env.WSS_NODE,
+        https_node: env.HTTPS_NODE,
+        myAddress : env.RECIPIENT
       },
-      token_output: await this.getToken(config.OUTPUT),
-      token_input: await this.getToken(config.INPUT)
+      token_output: await Until.getToken(env.OUTPUT),
+      token_input: await Until.getToken(env.INPUT)
     };
-  }
-
-  async getToken(token) {
-		const info = await fetch('https://api.pancakeswap.info/api/v2/tokens/' + token).then(function (response) {
-			if (response.status >= 400) {
-				throw new Error("Bad response from server");
-			}
-			return response.json();
-		});
-		return info.data || {};
-	}
-
-  getContractAddressByName(_name = "") {
-    // Pre-defined contracts
-    switch (_name.toLowerCase()) {
-      case "bnb":
-        return "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c";
-      case "eth":
-        return "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
-      case "matic":
-        return "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270";
-      case "busd":
-        return "0xe9e7cea3dedca5984780bafc599bd69add087d56";
-      case "sfm":
-        return "0x8076c74c5e3f5852037f31ff0093eeb8c8add8d3";
-    }
-    // No address specified, fail with error
-    if (!_name.startsWith("0x")) {
-      msg.error(
-        `[error::config] Contract "${_name}" does not exist, please use an address instead.`
-      );
-      process.exit();
-    }
-
-    return _name;
   }
 }
 
