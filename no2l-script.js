@@ -92,7 +92,7 @@ process.on('uncaughtException', (err, origin) => {
     // Purchase token [bnb -> token (through bnb)]
     if (transaction.modeManual === '--buy-only') {
         receipt = await network.transactToken(
-            contracts.input, 
+            contracts.input,
             contracts.output
         );
     }
@@ -117,7 +117,7 @@ process.on('uncaughtException', (err, origin) => {
     console.log(chalk.hex('#2091F6').inverse('========================================================\n'));
 
     msg.success(`Finished in ${((Math.floor(new Date().getTime() / 1000)) - startingTick)} seconds.`);
-    Until.saveFileHistoryTrans(wallet.myAddress,[contracts.input, contracts.output].join('_'), transaction.modeManual, receipt);
+    Until.saveFileHistoryTrans(wallet.myAddress, [contracts.input, contracts.output].join('_'), transaction.modeManual, receipt);
     process.exit();
 
 })();
