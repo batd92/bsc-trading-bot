@@ -11,7 +11,8 @@
   },
   "devDependencies": {},
   "scripts": {
-    "main": "node no2l-script.js"
+    "main": "node no2l-script.js",
+    "pairs": "node pancake-swap.js"
   },
   "author": "",
   "license": "ISC"

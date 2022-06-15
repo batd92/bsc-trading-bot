@@ -5,10 +5,8 @@
 /*=================================================*/
 
 const fs = require("fs");
-const fetch = require("isomorphic-fetch");
 const _ = require("lodash");
 
-const apiPairAddressPancakeSwap = "https://api.pancakeswap.info/api/v2/pairs";
 const pathPairsFormPancakeSwap = "storage.local/pairsFormPancakeSwap.json";
 class Cache {
   async load(wallet) {
@@ -33,23 +31,7 @@ class Cache {
 
     // Load 1000 pair for pancake swap
     if (fs.existsSync(pathPairsFormPancakeSwap)) {
-      this.pairsFormPancakeSwap = JSON.parse(
-        await fs.readFileSync(pathPairsFormPancakeSwap)
-      );
-    } else {
-      this.pairsFormPancakeSwap = await fetch(apiPairAddressPancakeSwap).then(function (response) {
-        if (response.status >= 400) {
-          console.log("Can not load 1000 pair for pancake swap !!!");
-          return {};
-        }
-        return response.json();
-      });
-      if (this.pairsFormPancakeSwap) {
-        await fs.writeFileSync(
-          pathPairsFormPancakeSwap,
-          JSON.stringify(this.pairsFormPancakeSwap)
-        );
-      }
+      this.pairsFormPancakeSwap = JSON.parse(await fs.readFileSync(pathPairsFormPancakeSwap));
     }
   }
 
