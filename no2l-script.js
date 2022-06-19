@@ -24,12 +24,12 @@ process.on('uncaughtException', (err, origin) => {
 (async () => {
     // Load config using our loaded cache
     await config.load();
-    const { contracts, transaction, wallet, token_output, token_input} = config.cfg;
+    const { Environment, CustomStrategyBuy, CustomStrategySell, Tokens } = config.cfg;
 
     // Load cache by wallet metamask
-    await cache.load(wallet.myAddress);
+    await cache.load(Environment.MY_ADDRESS);
 
-    if (!network.isETH(contracts.input)) {
+    if (!network.isETH(Tokens.BNB)) {
         msg.error(`[error::no2l-script] The free version of the bot can only use the BNB pair. => Input: BNB address.`);
         process.exit();
     }
@@ -52,24 +52,29 @@ process.on('uncaughtException', (err, origin) => {
     \n\n`);
 
     msg.primary('[debug::no2l-script] ↻ No2L ✇ →→→→→→→→ has been started.');
+    const vBNB = ethers.utils.formatEther(network.bnb_balance);
+    msg.primary(`[info::no2l-script] You have ${vBNB} BNB in your wallet.`);
 
-    const wBNB = ethers.utils.formatEther(network.bnb_balance);
-    msg.primary(`[info::no2l-script] You have ${wBNB} BNB in your wallet.`);
-
-	// Balance check
-    if (wBNB === 0) {
-    	msg.error(`[error::no2l-script] You don't have any BNB in your account. (used for gas fee)`);
+    // Balance check
+    if (vBNB === 0) {
+        msg.error(`[error::no2l-script] You don't have any BNB in your account. (used for gas fee)`);
         process.exit();
     }
 
-    // Check if has enough input balance
-    if ((network.bnb_balance < transaction.investmentAmount)) {
-        msg.error(`[error::no2l-script] You don't have enough input balance for this transaction.`);
-        process.exit();
+    if (Environment.modeManual === '--buy-only') {
+        // Check if has enough input balance
+        if ((vBNB < ethers.utils.formatEther(CustomStrategySell.InvestmentAmount))) {
+            msg.error(`[error::no2l-script] You don't have enough input balance for this transaction.`);
+            process.exit();
+        }
     }
 
     // Fetch pair
-    const pair = await network.getPair(contracts.input, contracts.output);
+    const pair = await network.getPair(Tokens.BNB, Tokens.TokenSwap);
+    if (!pair)  {
+        msg.error(`[error::no2l-script] Pair don't exit.`);
+        process.exit();
+    }
     await cache.save();
 
     msg.primary("[debug::no2l-script] Pair address: " + JSON.stringify(pair) + ".");
@@ -77,11 +82,11 @@ process.on('uncaughtException', (err, origin) => {
     // Get liquidity
     const liquidity = await network.getLiquidity(pair);
 
-    console.log(token_input, token_output);
-    msg.primary(`[debug::no2l-script] Liquidity found: ${liquidity} ${token_input.symbol}.\n`);
+    msg.primary(`[debug::no2l-script] Liquidity found: ${liquidity} BNB.\n`);
 
+    const minLiquidity = Environment.modeManual === '--buy-only' ? CustomStrategyBuy.MIN_LIQUIDITY : CustomStrategySell.MIN_LIQUIDITY;
     // Check liquidity
-    if (parseInt(liquidity) < parseInt(transaction.min_liquidity)) {
+    if (parseInt(liquidity) < parseInt(minLiquidity)) {
         msg.error(`[error::no2l-script] Liquidity of pool < Your liquidity.`);
         process.exit();
     }
@@ -90,18 +95,18 @@ process.on('uncaughtException', (err, origin) => {
     const startingTick = Math.floor(new Date().getTime() / 1000);
     let receipt;
     // Purchase token [bnb -> token (through bnb)]
-    if (transaction.modeManual === '--buy-only') {
+    if (Environment.modeManual === '--buy-only') {
         receipt = await network.transactToken(
-            contracts.input, 
-            contracts.output
+            Tokens.BNB,
+            Tokens.TokenSwap,
         );
     }
 
     // Sell token [token -> BNB (through bnb)]
-    if (transaction.modeManual === '--sell-only') {
+    if (Environment.modeManual === '--sell-only') {
         receipt = await network.transactFromTokenToBNB(
-            contracts.input, 
-            contracts.output
+            Tokens.TokenSwap,
+            Tokens.BNB,
         );
     }
 
@@ -109,15 +114,13 @@ process.on('uncaughtException', (err, origin) => {
         msg.error('[error::no2l-script] Could not retrieve receipt from buy tx.');
         process.exit();
     }
-    const outputToken = cache.getInfoTokenFormCache(contracts.output);
-    const inputToken = cache.getInfoTokenFormCache(contracts.input);
+
     console.log(chalk.hex('#2091F6').inverse('==================== [TX COMPLETED] ===================='));
-    console.log(chalk.hex('#2091F6')('• ') + chalk.hex('#EBF0FA')(`From ${inputToken.symbol} (${transaction.amount_in} ${inputToken.symbol}) -> ${outputToken.symbol} (minimum ${network.amount_bought_unformatted} ${outputToken.symbol})`));
     console.log(chalk.hex('#2091F6')('• ') + chalk.hex('#EBF0FA')(`https://bscscan.com/tx/${receipt.logs[1].transactionHash}`));
     console.log(chalk.hex('#2091F6').inverse('========================================================\n'));
 
     msg.success(`Finished in ${((Math.floor(new Date().getTime() / 1000)) - startingTick)} seconds.`);
-    Until.saveFileHistoryTrans(wallet.myAddress,[contracts.input, contracts.output].join('_'), transaction.modeManual, receipt);
+    // await Until.saveFileHistoryTrans(Environment.MY_ADDRESS, [Tokens.BNB, Tokens.TokenSwap].join('_'), Environment.modeManual, receipt);
     process.exit();
 
 })();

@@ -1,5 +1,6 @@
 const fs = require('fs');
 const fetch = require('isomorphic-fetch');
+const ethers = require("ethers");
 
 /**
  * Format ddyymm
@@ -66,8 +67,16 @@ const getContractAddressByName = (_name = "") => {
     return _name;
 }
 
+const isAddress = (address) => {
+  if (ethers.utils.isAddress(address)) return address;
+  msg.error(
+    `[error::config] Contract "${_name}" does not exist, please use an address instead.`
+  );
+  process.exit();
+}
 module.exports = {
     saveFileHistoryTrans,
     getToken,
-    getContractAddressByName
+    getContractAddressByName,
+    isAddress
 }
