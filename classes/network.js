@@ -7,20 +7,23 @@
 const ethers = require('ethers');
 const msg = require('./msg.js');
 const cache = require('./cache.js');
-
+const _ = require("lodash");
 class Network {
 	async load(config) {
-		this.config = config.cfg;
+		this.Environment = config.cfg.Environment;
+		this.CustomStrategyBuy = config.cfg.CustomStrategyBuy;
+		this.CustomStrategySell = config.cfg.CustomStrategySell;
+		this.Tokens = config.cfg.Tokens;
 		try {
-			if (!this.config.wallet.is_wss) {
+			if (!this.Environment.SYS_IS_WSS) {
 				// initialize stuff
-				this.node = new ethers.providers.WebSocketProvider(this.config.wallet.wss_node);
+				this.node = new ethers.providers.WebSocketProvider(this.Environment.SYS_WSS_NODE);
 			} else {
 				// initialize stuff
-				this.node = new ethers.providers.JsonRpcProvider(this.config.wallet.https_node);
+				this.node = new ethers.providers.JsonRpcProvider(this.Environment.SYS_HTTPS_NODE);
 			}
 			// initialize account
-			this.wallet = new ethers.Wallet.fromMnemonic(this.config.wallet.secret_key);
+			this.wallet = new ethers.Wallet.fromMnemonic(this.Environment.SYS_SECRET_KEY);
 			this.account = this.wallet.connect(this.node);
 			
 			// get network id for later use
@@ -35,7 +38,7 @@ class Network {
 				],
 				this.account // pass connected account to pcs factory
 			);
-
+			// Pancake router
 			this.router = new ethers.Contract(
 				'0x10ED43C718714eb63d5aA57B78B54704E256024E',
 				[
@@ -48,9 +51,9 @@ class Network {
 				],
 				this.account // Pass connected account to pcs router
 			);
-
+			// BNB router
 			this.contract_in = new ethers.Contract(
-				this.config.contracts.input,
+				this.Tokens.BNB,
 				[
 					{ "constant": true, "inputs": [{ "name": "_owner", "type": "address" }], "name": "balanceOf", "outputs": [{ "name": "balance", "type": "uint256" }], "payable": false, "type": "function" },
 					{ "constant": false, "inputs": [{ "name": "guy", "type": "address" }, { "name": "wad", "type": "uint256" }], "name": "approve", "outputs": [{ "name": "approved", "type": "bool" }], "payable": false, "type": "function" },
@@ -63,7 +66,7 @@ class Network {
 			);
 
 			this.contract_out = new ethers.Contract(
-				this.config.contracts.output,
+				this.Tokens.TokenSwap,
 				[
 					{ "constant": true, "inputs": [{ "name": "_owner", "type": "address" }], "name": "balanceOf", "outputs": [{ "name": "balance", "type": "uint256" }], "payable": false, "type": "function" },
 					{ "constant": false, "inputs": [{ "name": "guy", "type": "address" }, { "name": "wad", "type": "uint256" }], "name": "approve", "outputs": [{ "name": "approved", "type": "bool" }], "payable": false, "type": "function" },
@@ -76,9 +79,14 @@ class Network {
 			);
 
 			// Load user balances (for later use)
-			this.bnb_balance = parseInt(await this.account.getBalance());
-			this.input_balance = parseInt((this.isETH(this.config.contracts.input) ? this.bnb_balance : await this.contract_in.balanceOf(this.account.address)));
-			this.output_balance = parseInt((this.isETH(this.config.contracts.output) ? this.bnb_balance : await this.contract_out.balanceOf(this.account.address)));
+			// this.bnb_balance = parseInt(await this.account.getBalance());
+			// this.input_balance = parseInt((this.isETH(this.Tokens.BNB) ? this.bnb_balance : await this.contract_in.balanceOf(this.account.address)));
+			// this.output_balance = parseInt((this.isETH(this.Tokens.TokenSwap) ? this.bnb_balance : await this.contract_out.balanceOf(this.account.address)));
+			
+			// Format BigNumber
+			this.bnb_balance = await this.account.getBalance();
+			this.input_balance = this.isETH(this.Tokens.BNB) ? this.bnb_balance : await this.contract_in.balanceOf(this.account.address);
+			this.output_balance = this.isETH(this.Tokens.TokenSwap) ? this.bnb_balance : await this.contract_out.balanceOf(this.account.address);
 
 			// Load some more variables
 			this.base_nonce = parseInt(await this.node.getTransactionCount(this.account.address));
@@ -97,10 +105,10 @@ class Network {
 		// Format maxInt.
 		const maxInt = (ethers.BigNumber.from("2").pow(ethers.BigNumber.from("256").sub(ethers.BigNumber.from("1")))).toString();
 		// Cache & prepare contracts
-		if (!cache.isAddressCached(this.config.contracts.input)) {
+		if (!cache.isAddressCached(this.Tokens.BNB)) {
 			const symbol = await this.contract_in.symbol();
 			const decimals = await this.contract_in.decimals();
-			cache.setAddressArtifacts(this.config.contracts.input, decimals, symbol);
+			cache.setAddressArtifacts(this.Tokens.BNB, decimals, symbol, 0);
 			msg.primary(`[debug::network] Approving balance for ${symbol}.`);
 
 			// Approve output (for later)
@@ -108,8 +116,8 @@ class Network {
 				this.router.address,
 				maxInt,
 				{
-					'gasLimit': this.config.transaction.gas_limit_approve,
-					'gasPrice': this.config.transaction.gas_price_approve,
+					'gasLimit': this.Environment.SYS_GAS_LIMIT_APPROVE,
+					'gasPrice': this.Environment.SYS_GAS_PRICE_APPROVE,
 					'nonce': (this.getNonce())
 				}
 			);
@@ -121,28 +129,28 @@ class Network {
 			}
 
 			msg.success(`[debug::network] ${symbol} has been approved. (cache)`);
-			cache.setApproved(this.config.contracts.input);
+			cache.setApproved(this.Tokens.BNB);
 			await cache.save();
 
 		} else {
-			const token = cache.getInfoTokenFormCache(this.config.contracts.input);
+			const token = cache.getInfoTokenFormCache(this.Tokens.BNB);
 			msg.success(`[debug::network] ${(token ? token.symbol : await this.contract_in.symbol())} has already been approved. (cache)`);
 		}
 
 		// Cache & prepare contracts
-		if (!cache.isAddressCached(this.config.contracts.output)) {
+		if (!cache.isAddressCached(this.Tokens.TokenSwap)) {
 			const symbolOut = await this.contract_out.symbol();
 			const decimalsOut = await this.contract_out.decimals();
-			cache.setAddressArtifacts(this.config.contracts.output, decimalsOut, symbolOut);
-			msg.primary(`[debug::network] Approving balance for ${symbolOut}.`);
+			cache.setAddressArtifacts(this.Tokens.TokenSwap, decimalsOut, symbolOut);
+			msg.primary(`[debug::network] ✔ Approving balance for ${symbolOut}.`);
 
 			// // Approve output (for later)
 			const outTx = await this.contract_out.approve(
 				this.router.address,
 				maxInt,
 				{
-					'gasLimit': this.config.transaction.gas_limit_approve,
-					'gasPrice': this.config.transaction.gas_price_approve,
+					'gasLimit': this.Environment.SYS_GAS_LIMIT_APPROVE,
+					'gasPrice': this.Environment.SYS_GAS_PRICE_APPROVE,
 					'nonce': (this.getNonce())
 				}
 			);
@@ -154,20 +162,24 @@ class Network {
 				process.exit();
 			}
 
-			msg.success(`[debug::network] ${symbolOut} has been approved. (cache)`);
-			cache.setApproved(this.config.contracts.output);
+			msg.success(`[debug::network] ✔ ${symbolOut} has been approved. (cache)`);
+			cache.setApproved(this.Tokens.TokenSwap);
 			await cache.save();
 
 		} else {
-			const token = cache.getInfoTokenFormCache(this.config.contracts.output);
+			const token = cache.getInfoTokenFormCache(this.Tokens.TokenSwap);
 			msg.success(`[debug::network] ${(token ? token.symbol : await this.contract_out.symbol())} has already been approved. (cache)`);
 		}
 
 		// Now that the cache is done, restructure variables
-		this.config.transaction.investmentAmount = ethers.utils.parseUnits((this.config.transaction.investmentAmount).toString(), await this.contract_in.decimals());
+		if (this.Environment.modeManual === '--sell-only') {
+			this.CustomStrategySell.InvestmentAmount = ethers.utils.parseUnits((this.CustomStrategySell.InvestmentAmount).toString(), await this.contract_in.decimals());
+		} else {
+			this.CustomStrategyBuy.InvestmentAmount = ethers.utils.parseUnits((this.CustomStrategyBuy.InvestmentAmount).toString(), await this.contract_in.decimals());
+		}
 	}
 
-	// Wrapper function for swapping
+	// Wrapper function for swapping => (buy)
 	async swapFromTokenToToken(amountIn, amountOutMin, contracts) {
 		try {
 			return this.router.swapExactETHForTokensSupportingFeeOnTransferTokens(
@@ -177,8 +189,8 @@ class Network {
 				(Date.now() + 1000 * 60 * 10),
 				{
 					'value': amountIn,
-					'gasLimit': this.config.transaction.gas_limit,
-					'gasPrice': this.config.transaction.gas_price,
+					'gasLimit': this.CustomStrategyBuy.GAS_LIMIT,
+					'gasPrice': this.CustomStrategyBuy.GAS_PRICE,
 					'nonce': (this.getNonce())
 				}
 			);
@@ -189,8 +201,12 @@ class Network {
 		}
 	}
 
-	async estimateTransaction(amountIn, amountOutMin, contracts) {
+	// Check est of transaction
+	async estimateTransaction(amountIn, amountOutMin, contracts, modeManual) {
 		try {
+			const gasLimit = this.Environment.modeManual === '--sell-only' ? this.CustomStrategySell.GAS_LIMIT  : this.CustomStrategyBuy.GAS_LIMIT;
+			const gasPrice = this.Environment.modeManual === '--sell-only' ? this.CustomStrategySell.GAS_PRICE : this.CustomStrategyBuy.GAS_PRICE;
+			console.log(gasLimit, gasPrice);
 			let gas = await this.router.estimateGas.swapExactETHForTokensSupportingFeeOnTransferTokens(
 				amountOutMin,
 				contracts,
@@ -198,15 +214,15 @@ class Network {
 				(Date.now() + 1000 * 60 * 10),
 				{
 					'value': amountIn,
-					'gasLimit': this.config.transaction.gas_limit,
-					'gasPrice': this.config.transaction.gas_price
+					'gasLimit': gasLimit,
+					'gasPrice': gasPrice
 				}
 			);
 
 			// TODO: Check (fee gas + fee buy) <= money in wallet => gas increase
 			// Check if is using enough gas.
-			if (gas > parseInt(this.config.transaction.gas_limit)) {
-				msg.error(`[error::simulate] The transaction requires at least ${gas} gas, your limit is ${this.config.transactiontransaction.gas_limit}.`);
+			if (gas > parseInt(gasLimit)) {
+				msg.error(`[error::simulate] The transaction requires at least ${gas} gas, your limit is ${gasLimit}.`);
 				process.exit();
 			}
 			return true;
@@ -218,13 +234,15 @@ class Network {
 		}
 	}
 
+	// Buy token
 	async transactToken(from, to) {
+		msg.primary('✔ Buy ... ');
 		try {
-			let inputTokenAmount = this.config.transaction.investmentAmount;
+			let inputTokenAmount = this.CustomStrategyBuy.InvestmentAmount;
 			// Get output amounts
 			let amounts = await this.router.getAmountsOut(inputTokenAmount, [from, to]);
 			// Calculate min output with current slippage in bnb
-			let amountOutMin = amounts[1].sub(amounts[1].div(100).mul(this.config.transaction.buy_slippage));
+			let amountOutMin = amounts[1].sub(amounts[1].div(100).mul(this.CustomStrategyBuy.BUY_SLIPPAGE));
 			// Simulate transaction to verify outputs.
 			let estimationPassed = await this.estimateTransaction(inputTokenAmount, amountOutMin, [from, to]);
 
@@ -249,7 +267,7 @@ class Network {
 			// get current ballance from output contract.
 			let currentOutBalance = await this.contract_out.balanceOf(this.account.address);
 
-			this.amount_bought_unformatted = ethers.utils.formatUnits(`${(currentOutBalance - this.output_balance)}`, cache.tokens[contracts.output].decimals);
+			this.amount_bought_unformatted = ethers.utils.formatUnits(`${(currentOutBalance - this.output_balance)}`, 18); //18 or cache[this.Environment.MY_ADDRESS].tokens[this.Tokens.BNB].decimals);
 			return receipt;
 
 		} catch (err) {
@@ -281,10 +299,11 @@ class Network {
 	async getPair(contract_in, contract_out) {
 		// Get pair address
 		const pair = cache.getPairFromCache(contract_in, contract_out) || await this.factory.getPair(contract_in, contract_out);
-		if (await this.isPairAddress(pair)) return pair;
-		// Set pair address to cache
-		cache.setPairAddress(`${contract_in}_${contract_out}`, pair);
-		return pair;
+		if (await this.isPairAddress(pair)) {
+			// Set pair address to cache
+			cache.setPairAddress(`${contract_in}_${contract_out}`, pair);
+			return pair;	
+		}
 	}
 
 	async isPairAddress(pair) {
@@ -303,46 +322,37 @@ class Network {
 	}
 
 	async transactFromTokenToBNB(from, to) {
+		msg.primary('✔ Sell ... ');
+		const output_balance = ethers.utils.formatEther(this.output_balance);
 		// Check token in your wallet
-		// if (this.output_balance === 0) {
-		// 	msg.error(`[error::transact] The amount of tokens (${this.config.contracts.output}) in your wallet is Zero.`);
-		// 	process.exit();
-		// }
+		if (output_balance === 0) {
+			msg.error(`[error::transact] The amount of tokens (${this.Tokens.TokenSwap}) in your wallet is Zero.`);
+			process.exit();
+		}
+		// Calculate token need sell
 		try {
 			const isProfit = true;
-			const output_balance = await this.contract_out.balanceOf(this.config.contracts.output);
 			// Get the amount of tokens in the wallet your
 			let balanceString;
-			const tokenOut = cache.getInfoTokenFormCache(this.config.contracts.output);
+			const tokenOut = cache.getInfoTokenFormCache(this.Tokens.TokenSwap);
 			const decimals = tokenOut.decimals || await this.contract_out.decimals();
 
 			// Convert amount and calculate selling profit or loss
-			const convertBalance = (balance, decimals, percentToSell) => {
-				return (parseFloat(ethers.utils.formatUnits(balance.toString(), decimals)) * (percentToSell / 100)).toFixed(decimals).toString()
-			}
+			const convertBalance = (balance, decimals, percentToSell) => (parseFloat(balance) * (percentToSell / 100)).toFixed(decimals).toString();
 			if (isProfit) {
-				balanceString = convertBalance(output_balance, decimals, this.config.transaction.percentOfTokensToSellProfit);
+				balanceString = convertBalance(output_balance, decimals, _.get(this.CustomStrategySell, ['percentOfTokensToSellProfit']));
 			} else {
-				balanceString = convertBalance(output_balance, decimals, this.config.transaction.percentOfTokensToSellLoss);
+				balanceString = convertBalance(output_balance, decimals, _.get(this.CustomStrategySell, ['percentOfTokensToSellLoss']));
 			}
+			msg.primary(`[debug::transact] Total balance sell (${balanceString}) of token ${tokenOut.symbol || ''}..\n`);
+			
+			var roundedBalance = Math.floor(balanceString * 100) / 100;
 			// Get balance to sell current
-			const balanceToSell = ethers.utils.parseUnits(balanceString, decimals);
+			const balanceToSell = ethers.utils.parseUnits(roundedBalance.toString(), decimals);
 			// Get output amounts of token on pancake swap. Includes price current
 			const sellAmount = await this.router.getAmountsOut(balanceToSell, [from, to]);
-
 			// Calculate min output with current slippage in bnb
-			const amountOutMin = sellAmount[1].sub(sellAmount[1].div(2));
-
-			// Simulate transaction to verify outputs.
-			const estimationPassed = await this.estimateTransaction(sellAmount[0].toString(), amountOutMin, [from, to]);
-
-			// If simulation passed, notify, else, exit
-			if (estimationPassed) {
-				msg.success(`[debug::transact] Estimation passed successfully. proceeding with transaction.`);
-			} else {
-				msg.error(`[error::transact] Estimation did not pass checks. exiting..`);
-				process.exit();
-			}
+			const amountOutMin = 0;//sellAmount[1].sub(sellAmount[1].div(2));
 
 			const tx = await this.sellTokenOnPancakeSwap(
 				sellAmount[0].toString(),
@@ -357,15 +367,16 @@ class Network {
 			// Get current ballance from output contract.
 			const currentOutBalance = await this.contract_out.balanceOf(this.account.address);
 
-			this.amount_sell_unformatted = ethers.utils.formatUnits(`${(currentOutBalance - this.output_balance)}`, cache.tokens[this.config.contracts.output].decimals);
+			this.amount_sell_unformatted = ethers.utils.formatUnits(`${(currentOutBalance - this.output_balance)}`, _.get(cache, [this.Environment.MY_ADDRESS, 'tokens', this.Tokens.TokenSwap, 'decimals']));
 			return receipt;
 
 		} catch (err) {
 			if (err.error && err.error.message) {
 				msg.error(`[error::transact] ${err.error.message}`);
-			} else
+			} else {
 				console.log(err);
-			return this.transactFromTokenToBNB(from, to);
+				//return this.transactFromTokenToBNB(from, to);
+			}
 		}
 	}
 
@@ -375,11 +386,11 @@ class Network {
 				sellAmount,   // The amount of input tokens to send.
 				amountOutMin, // The minimum amount of output tokens that must be received for the transaction not to revert.
 				contracts,    // An array of token addresses. path.length must be >= 2. Pools for each consecutive pair of addresses must exist and have liquidity.
-				this.config.wallet.myAddress, // Recipient of the ETH.
+				this.Environment.MY_ADDRESS, // Recipient of the ETH.
 				Math.floor(Date.now() / 1000) + 60 * 20, // (Date.now() + 1000 * 60 * 10)
 				{
-					'gasLimit': this.config.transaction.gas_limit,
-					'gasPrice': this.config.transaction.gas_price
+					'gasLimit': this.CustomStrategySell.GAS_LIMIT,
+					'gasPrice': this.CustomStrategySell.GAS_PRICE,
 				}
 			);
 		} catch (error) {

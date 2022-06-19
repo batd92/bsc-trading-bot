@@ -50,13 +50,15 @@ class Cache {
    * @param {*} _decimals
    * @param {*} _symbol
    */
-  setAddressArtifacts(_address, _decimals, _symbol) {
+  setAddressArtifacts(_address, _decimals, _symbol, _balance) {
     if (!this.isAddressCached(_address)) this.createAddress(_address);
-    this[this.walletAddress.toString()]["tokens"][_address.toString()]._balance = _balance;
-    _.set(this, [this.walletAddress.toString(), 'tokens', _address.toString()], {
-      decimals: _decimals,
-      symbol: _symbol,
-    });
+    if (_balance !== 0) {
+      this[this.walletAddress.toString()]["tokens"][_address.toString()]._balance = _balance;
+      _.set(this, [this.walletAddress.toString(), 'tokens', _address.toString()], {
+        decimals: _decimals,
+        symbol: _symbol,
+      });
+    };
   }
 
   /**
@@ -83,6 +85,7 @@ class Cache {
    * @param {*} _pair
    */
   setPairAddress(contracts, _pair) {
+    if (_.get(this.walletAddress.toString(), ['pairs_address', contracts.toString()])) return;
     _.set(this, [this.walletAddress.toString(), 'pairs_address', contracts.toString()], _pair);
   }
 
