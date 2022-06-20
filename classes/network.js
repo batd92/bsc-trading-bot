@@ -8,6 +8,9 @@ const ethers = require('ethers');
 const msg = require('./msg.js');
 const cache = require('./cache.js');
 const _ = require("lodash");
+const pancakeswapRouterAddress = '0x10ED43C718714eb63d5aA57B78B54704E256024E';
+const pancakeFactory = '0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73';
+
 class Network {
 	async load(config) {
 		this.Environment = config.cfg.Environment;
@@ -31,7 +34,7 @@ class Network {
 
 			// pcs stuff for later use
 			this.factory = new ethers.Contract(
-				'0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73',
+				pancakeFactory,
 				[
 					'event PairCreated(address indexed token0, address indexed token1, address pair, uint)',
 					'function getPair(address tokenA, address tokenB) external view returns (address pair)'
@@ -40,7 +43,7 @@ class Network {
 			);
 			// Pancake router
 			this.router = new ethers.Contract(
-				'0x10ED43C718714eb63d5aA57B78B54704E256024E',
+				pancakeswapRouterAddress,
 				[
 					'function getAmountsOut(uint amountIn, address[] memory path) public view returns (uint[] memory amounts)',
 					'function swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external returns (uint[] memory amounts)',
@@ -75,7 +78,7 @@ class Network {
 					{ "inputs": [], "name": "decimals", "outputs": [{ "internalType": "uint8", "name": "", "type": "uint8" }], "stateMutability": "view", "type": "function" },
 					{ "inputs": [{ "internalType": "address", "name": "recipient", "type": "address" }, { "internalType": "uint256", "name": "amount", "type": "uint256" }], "name": "transfer", "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }], "stateMutability": "nonpayable", "type": "function" }
 				],
-				this.account //Pass connected account to purchase smart contract
+				this.account // Pass connected account to purchase smart contract
 			);
 
 			// Load user balances (for later use)
@@ -206,7 +209,6 @@ class Network {
 		try {
 			const gasLimit = this.Environment.modeManual === '--sell-only' ? this.CustomStrategySell.GAS_LIMIT  : this.CustomStrategyBuy.GAS_LIMIT;
 			const gasPrice = this.Environment.modeManual === '--sell-only' ? this.CustomStrategySell.GAS_PRICE : this.CustomStrategyBuy.GAS_PRICE;
-			console.log(gasLimit, gasPrice);
 			let gas = await this.router.estimateGas.swapExactETHForTokensSupportingFeeOnTransferTokens(
 				amountOutMin,
 				contracts,
@@ -260,15 +262,18 @@ class Network {
 				[from, to]
 			);
 
-			msg.success(`[debug::transact] TX has been submitted. Waiting for response..\n`);
+			msg.success(`[debug::transact] ✔ Buy done. \n`);
+			if (this.Environment.isWaitingTx) {
+				msg.success(`[debug::transact] TX has been submitted. Waiting for response..\n`);
+				let receipt = await tx.wait();
+				// get current ballance from output contract.
+				let currentOutBalance = await this.contract_out.balanceOf(this.account.address);
 
-			let receipt = await tx.wait();
+				this.amount_bought_unformatted = ethers.utils.formatUnits(`${(currentOutBalance - this.output_balance)}`, 18); //18 or cache[this.Environment.MY_ADDRESS].tokens[this.Tokens.BNB].decimals);
+				return receipt;
 
-			// get current ballance from output contract.
-			let currentOutBalance = await this.contract_out.balanceOf(this.account.address);
-
-			this.amount_bought_unformatted = ethers.utils.formatUnits(`${(currentOutBalance - this.output_balance)}`, 18); //18 or cache[this.Environment.MY_ADDRESS].tokens[this.Tokens.BNB].decimals);
-			return receipt;
+			}
+			return undefined;
 
 		} catch (err) {
 			if (err.error && err.error.message) {
@@ -359,16 +364,19 @@ class Network {
 				amountOutMin,
 				[from, to]
 			);
+			msg.success(`[debug::transact] ✔ Sell done. \n`);
+			if (this.Environment.isWaitingTx) {
+				msg.success(`[debug::transact] TX has been submitted. Waiting for response..\n`);
 
-			msg.success(`[debug::transact] TX has been submitted. Waiting for response..\n`);
-
-			const receipt = await tx.wait();
-
-			// Get current ballance from output contract.
-			const currentOutBalance = await this.contract_out.balanceOf(this.account.address);
-
-			this.amount_sell_unformatted = ethers.utils.formatUnits(`${(currentOutBalance - this.output_balance)}`, _.get(cache, [this.Environment.MY_ADDRESS, 'tokens', this.Tokens.TokenSwap, 'decimals']));
-			return receipt;
+				const receipt = await tx.wait();
+	
+				// Get current ballance from output contract.
+				const currentOutBalance = await this.contract_out.balanceOf(this.account.address);
+	
+				this.amount_sell_unformatted = ethers.utils.formatUnits(`${(currentOutBalance - this.output_balance)}`, _.get(cache, [this.Environment.MY_ADDRESS, 'tokens', this.Tokens.TokenSwap, 'decimals']));
+				return receipt;
+			}
+			return undefined;
 
 		} catch (err) {
 			if (err.error && err.error.message) {

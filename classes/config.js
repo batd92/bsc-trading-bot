@@ -20,7 +20,8 @@ const Environment = {
   SYS_GAS_PRICE_APPROVE: ethers.utils.parseUnits('5', "gwei"),
   SYS_GAS_LIMIT_APPROVE: 70000,
   MY_ADDRESS: '0x1370715e3c4B4dda15DF6d15140D90faF521FeCf',
-  modeManual
+  modeManual,
+  isWaitingTx: false                                    // Chỉ định có lấy link tx không ?
 };
 
 const Tokens = {
@@ -45,7 +46,7 @@ const CustomStrategySell = async () => {
     GAS_LIMIT: 475147,                               //257760, // => // Phí lượng gas tối đa mà có thể trả trên mỗi giao dịch => Càng nhiều => Càng nhanh
     GAS_PRICE: ethers.utils.parseUnits('5', "gwei"), // => // Giá mà có thể trả cho miner/validator trong mỗi lần giao dịch => Càng nhiều => Càng nhanh
     InvestmentAmount: 1,                             // => Số lượng bán
-    BUY_SLIPPAGE: 50,                                // => Phần trăm trượt giá
+    SELL_SLIPPAGE: 50,                               // => Phần trăm trượt giá
     MIN_LIQUIDITY: 100,                              // => Số lượng BNB của pool ít nhất
     MAX_LIQUIDITY: 10000,                            // => Số lượng BNB của pool max nhất
     INFO_TOKEN_INPUT: await Until.getToken(Until.isAddress('0xe9e7cea3dedca5984780bafc599bd69add087d56')), // => ???
