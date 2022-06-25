@@ -13,7 +13,7 @@ class Cache {
     this.walletAddress = wallet;
 
     // Load info address from cached file
-    this.fileToken = `${this.walletAddress}.json`;
+    this.fileToken = `storage.local/${this.walletAddress}.json`;
     if (fs.existsSync(this.fileToken)) {
       const data = JSON.parse(await fs.readFileSync(this.fileToken));
       if (data) {

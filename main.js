@@ -6,12 +6,11 @@
 const { msg, config, cache, network } = require('./classes/main.js');
 const ethers = require('ethers');
 const chalk = require('chalk');
-const Until = require('./classes/until');
 
 let ConsoleLog = console.log;
 
 // Main classes
-// console.clear();
+console.clear();
 msg.primary('[debug::no2l-script] Loading..');
 
 // Error handler
@@ -20,7 +19,7 @@ process.on('uncaughtException', (err, origin) => {
 	process.exit();
 });
 
-// Main
+// LockAndExecute
 (async () => {
     // Load config using our loaded cache
     await config.load();
@@ -36,12 +35,11 @@ process.on('uncaughtException', (err, origin) => {
 
 	// Initialize our network using a config.
 	await network.load(config);
-
 	// Prepare network for transactions
     await network.prepare();
 
     // Print debug info
-    // console.clear();
+    console.clear();
 
     ConsoleLog(`
     /*=================================================*/
@@ -104,6 +102,11 @@ process.on('uncaughtException', (err, origin) => {
 
     // Sell token [token -> BNB (through bnb)]
     if (Environment.modeManual === '--sell-only') {
+        // const checkBalance = async () => {
+        //     if (await network.getOutputBalance()) return;
+        //     setTimeout(checkBalance, 500);
+        // };
+        // setTimeout(checkBalance, 1000);
         receipt = await network.transactFromTokenToBNB(
             Tokens.TokenSwap,
             Tokens.BNB,

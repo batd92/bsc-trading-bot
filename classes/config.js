@@ -8,8 +8,8 @@ const ethers = require("ethers");
 const Until = require("./until");
 const bnbAddress = "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c";
 
-const modeManual = "--sell-only";                       // Enables manual sell mode. This will only sell the token and then exit.
-//const modeManual = '--buy-only';                      // Enables manual buy mode. This will only buy the token and then exit.
+// const modeManual = "--sell-only";                       // Enables manual sell mode. This will only sell the token and then exit.
+const modeManual = '--buy-only';                      // Enables manual buy mode. This will only buy the token and then exit.
 
 // Load data from .env
 const Environment = {

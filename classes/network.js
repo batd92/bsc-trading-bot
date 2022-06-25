@@ -102,6 +102,10 @@ class Network {
 		}
 	}
 
+	async getOutputBalance() {
+		return (this.output_balance || await this.contract_out.balanceOf(this.account.address));
+	}
+
 	async prepare() {
 
 		msg.primary(`[debug::network] Preparing network..`);
