@@ -18,7 +18,7 @@ class Network {
 		this.CustomStrategySell = config.cfg.CustomStrategySell;
 		this.Tokens = config.cfg.Tokens;
 		try {
-			if (!this.Environment.SYS_IS_WSS) {
+			if (this.Environment.SYS_IS_WSS) {
 				// initialize stuff
 				this.node = new ethers.providers.WebSocketProvider(this.Environment.SYS_WSS_NODE);
 			} else {
