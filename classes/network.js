@@ -107,7 +107,6 @@ class Network {
 	}
 
 	async prepare() {
-
 		msg.primary(`[debug::network] Preparing network..`);
 		// Format maxInt.
 		const maxInt = (ethers.BigNumber.from("2").pow(ethers.BigNumber.from("256").sub(ethers.BigNumber.from("1")))).toString();
@@ -140,8 +139,7 @@ class Network {
 			await cache.save();
 
 		} else {
-			const token = cache.getInfoTokenFormCache(this.Tokens.BNB);
-			msg.success(`[debug::network] ${(token ? token.symbol : await this.contract_in.symbol())} has already been approved. (cache)`);
+			msg.success(`[debug::network] BNB has already been approved. (cache)`);
 		}
 
 		// Cache & prepare contracts
@@ -174,8 +172,7 @@ class Network {
 			await cache.save();
 
 		} else {
-			const token = cache.getInfoTokenFormCache(this.Tokens.TokenSwap);
-			msg.success(`[debug::network] ${(token ? token.symbol : await this.contract_out.symbol())} has already been approved. (cache)`);
+			msg.success(`[debug::network] TokenSwap has already been approved. (cache)`);
 		}
 
 		// Now that the cache is done, restructure variables
@@ -209,7 +206,7 @@ class Network {
 	}
 
 	// Check est of transaction
-	async estimateTransaction(amountIn, amountOutMin, contracts, modeManual) {
+	async estimateTransaction(amountIn, amountOutMin, contracts) {
 		try {
 			const gasLimit = this.Environment.modeManual === '--sell-only' ? this.CustomStrategySell.GAS_LIMIT  : this.CustomStrategyBuy.GAS_LIMIT;
 			const gasPrice = this.Environment.modeManual === '--sell-only' ? this.CustomStrategySell.GAS_PRICE : this.CustomStrategyBuy.GAS_PRICE;
@@ -254,7 +251,7 @@ class Network {
 
 			// If simulation passed, notify, else, exit
 			if (estimationPassed) {
-				msg.success(`[debug::transact] Estimation passed successfully. proceeding with transaction.`);
+				msg.success(`[debug::transact] Estimation passed successfully. Proceeding with transaction.`);
 			} else {
 				msg.error(`[error::transact] Estimation did not pass checks. exiting..`);
 				process.exit();
@@ -284,7 +281,7 @@ class Network {
 				msg.error(`[error::transact] ${err.error.message}`);
 			} else
 				console.log(err);
-			return this.transactToken(from, to);
+			// return this.transactToken(from, to);
 		}
 	}
 
@@ -301,7 +298,11 @@ class Network {
 			msg.warning("[debug::liquidity] There is not enough liquidity yet.");
 			return this.getLiquidity(pair);
 		}
-
+		// Check liquidity
+		if (parseInt(formattedbnbValue) < parseInt(this.CustomStrategyBuy.MIN_LIQUIDITY)) {
+			msg.error(`[error::no2l-script] Liquidity of pool < Your liquidity.`);
+			process.exit();
+		}
 		return formattedbnbValue;
 	}
 
@@ -330,7 +331,7 @@ class Network {
 		return nonce;
 	}
 
-	async transactFromTokenToBNB(from, to) {
+	async transactTokenToBNB(from, to) {
 		msg.primary('✔ Sell ... ');
 		const output_balance = ethers.utils.formatEther(this.output_balance);
 		// Check token in your wallet
@@ -362,7 +363,7 @@ class Network {
 			const sellAmount = await this.router.getAmountsOut(balanceToSell, [from, to]);
 			// Calculate min output with current slippage in bnb
 			const amountOutMin = 0;//sellAmount[1].sub(sellAmount[1].div(2));
-
+			
 			const tx = await this.sellTokenOnPancakeSwap(
 				sellAmount[0].toString(),
 				amountOutMin,
