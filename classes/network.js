@@ -8,6 +8,9 @@ const ethers = require('ethers');
 const msg = require('./msg.js');
 const cache = require('./cache.js');
 const _ = require("lodash");
+const pancakeswapRouterAddress = '0x10ED43C718714eb63d5aA57B78B54704E256024E';
+const pancakeFactory = '0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73';
+
 class Network {
 	async load(config) {
 		this.Environment = config.cfg.Environment;
@@ -15,7 +18,7 @@ class Network {
 		this.CustomStrategySell = config.cfg.CustomStrategySell;
 		this.Tokens = config.cfg.Tokens;
 		try {
-			if (!this.Environment.SYS_IS_WSS) {
+			if (this.Environment.SYS_IS_WSS) {
 				// initialize stuff
 				this.node = new ethers.providers.WebSocketProvider(this.Environment.SYS_WSS_NODE);
 			} else {
@@ -31,7 +34,7 @@ class Network {
 
 			// pcs stuff for later use
 			this.factory = new ethers.Contract(
-				'0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73',
+				pancakeFactory,
 				[
 					'event PairCreated(address indexed token0, address indexed token1, address pair, uint)',
 					'function getPair(address tokenA, address tokenB) external view returns (address pair)'
@@ -40,7 +43,7 @@ class Network {
 			);
 			// Pancake router
 			this.router = new ethers.Contract(
-				'0x10ED43C718714eb63d5aA57B78B54704E256024E',
+				pancakeswapRouterAddress,
 				[
 					'function getAmountsOut(uint amountIn, address[] memory path) public view returns (uint[] memory amounts)',
 					'function swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external returns (uint[] memory amounts)',
@@ -75,7 +78,7 @@ class Network {
 					{ "inputs": [], "name": "decimals", "outputs": [{ "internalType": "uint8", "name": "", "type": "uint8" }], "stateMutability": "view", "type": "function" },
 					{ "inputs": [{ "internalType": "address", "name": "recipient", "type": "address" }, { "internalType": "uint256", "name": "amount", "type": "uint256" }], "name": "transfer", "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }], "stateMutability": "nonpayable", "type": "function" }
 				],
-				this.account //Pass connected account to purchase smart contract
+				this.account // Pass connected account to purchase smart contract
 			);
 
 			// Load user balances (for later use)
@@ -99,8 +102,11 @@ class Network {
 		}
 	}
 
-	async prepare() {
+	async getOutputBalance() {
+		return (this.output_balance || await this.contract_out.balanceOf(this.account.address));
+	}
 
+	async prepare() {
 		msg.primary(`[debug::network] Preparing network..`);
 		// Format maxInt.
 		const maxInt = (ethers.BigNumber.from("2").pow(ethers.BigNumber.from("256").sub(ethers.BigNumber.from("1")))).toString();
@@ -133,8 +139,7 @@ class Network {
 			await cache.save();
 
 		} else {
-			const token = cache.getInfoTokenFormCache(this.Tokens.BNB);
-			msg.success(`[debug::network] ${(token ? token.symbol : await this.contract_in.symbol())} has already been approved. (cache)`);
+			msg.success(`[debug::network] BNB has already been approved. (cache)`);
 		}
 
 		// Cache & prepare contracts
@@ -167,8 +172,7 @@ class Network {
 			await cache.save();
 
 		} else {
-			const token = cache.getInfoTokenFormCache(this.Tokens.TokenSwap);
-			msg.success(`[debug::network] ${(token ? token.symbol : await this.contract_out.symbol())} has already been approved. (cache)`);
+			msg.success(`[debug::network] TokenSwap has already been approved. (cache)`);
 		}
 
 		// Now that the cache is done, restructure variables
@@ -202,11 +206,10 @@ class Network {
 	}
 
 	// Check est of transaction
-	async estimateTransaction(amountIn, amountOutMin, contracts, modeManual) {
+	async estimateTransaction(amountIn, amountOutMin, contracts) {
 		try {
 			const gasLimit = this.Environment.modeManual === '--sell-only' ? this.CustomStrategySell.GAS_LIMIT  : this.CustomStrategyBuy.GAS_LIMIT;
 			const gasPrice = this.Environment.modeManual === '--sell-only' ? this.CustomStrategySell.GAS_PRICE : this.CustomStrategyBuy.GAS_PRICE;
-			console.log(gasLimit, gasPrice);
 			let gas = await this.router.estimateGas.swapExactETHForTokensSupportingFeeOnTransferTokens(
 				amountOutMin,
 				contracts,
@@ -248,7 +251,7 @@ class Network {
 
 			// If simulation passed, notify, else, exit
 			if (estimationPassed) {
-				msg.success(`[debug::transact] Estimation passed successfully. proceeding with transaction.`);
+				msg.success(`[debug::transact] Estimation passed successfully. Proceeding with transaction.`);
 			} else {
 				msg.error(`[error::transact] Estimation did not pass checks. exiting..`);
 				process.exit();
@@ -260,22 +263,25 @@ class Network {
 				[from, to]
 			);
 
-			msg.success(`[debug::transact] TX has been submitted. Waiting for response..\n`);
+			msg.success(`[debug::transact] ✔ Buy done. \n`);
+			if (this.Environment.isWaitingTx) {
+				msg.success(`[debug::transact] TX has been submitted. Waiting for response..\n`);
+				let receipt = await tx.wait();
+				// get current ballance from output contract.
+				let currentOutBalance = await this.contract_out.balanceOf(this.account.address);
 
-			let receipt = await tx.wait();
+				this.amount_bought_unformatted = ethers.utils.formatUnits(`${(currentOutBalance - this.output_balance)}`, 18); //18 or cache[this.Environment.MY_ADDRESS].tokens[this.Tokens.BNB].decimals);
+				return receipt;
 
-			// get current ballance from output contract.
-			let currentOutBalance = await this.contract_out.balanceOf(this.account.address);
-
-			this.amount_bought_unformatted = ethers.utils.formatUnits(`${(currentOutBalance - this.output_balance)}`, 18); //18 or cache[this.Environment.MY_ADDRESS].tokens[this.Tokens.BNB].decimals);
-			return receipt;
+			}
+			return undefined;
 
 		} catch (err) {
 			if (err.error && err.error.message) {
 				msg.error(`[error::transact] ${err.error.message}`);
 			} else
 				console.log(err);
-			return this.transactToken(from, to);
+			// return this.transactToken(from, to);
 		}
 	}
 
@@ -292,7 +298,11 @@ class Network {
 			msg.warning("[debug::liquidity] There is not enough liquidity yet.");
 			return this.getLiquidity(pair);
 		}
-
+		// Check liquidity
+		if (parseInt(formattedbnbValue) < parseInt(this.CustomStrategyBuy.MIN_LIQUIDITY)) {
+			msg.error(`[error::no2l-script] Liquidity of pool < Your liquidity.`);
+			process.exit();
+		}
 		return formattedbnbValue;
 	}
 
@@ -321,7 +331,7 @@ class Network {
 		return nonce;
 	}
 
-	async transactFromTokenToBNB(from, to) {
+	async transactTokenToBNB(from, to) {
 		msg.primary('✔ Sell ... ');
 		const output_balance = ethers.utils.formatEther(this.output_balance);
 		// Check token in your wallet
@@ -353,22 +363,25 @@ class Network {
 			const sellAmount = await this.router.getAmountsOut(balanceToSell, [from, to]);
 			// Calculate min output with current slippage in bnb
 			const amountOutMin = 0;//sellAmount[1].sub(sellAmount[1].div(2));
-
+			
 			const tx = await this.sellTokenOnPancakeSwap(
 				sellAmount[0].toString(),
 				amountOutMin,
 				[from, to]
 			);
+			msg.success(`[debug::transact] ✔ Sell done. \n`);
+			if (this.Environment.isWaitingTx) {
+				msg.success(`[debug::transact] TX has been submitted. Waiting for response..\n`);
 
-			msg.success(`[debug::transact] TX has been submitted. Waiting for response..\n`);
-
-			const receipt = await tx.wait();
-
-			// Get current ballance from output contract.
-			const currentOutBalance = await this.contract_out.balanceOf(this.account.address);
-
-			this.amount_sell_unformatted = ethers.utils.formatUnits(`${(currentOutBalance - this.output_balance)}`, _.get(cache, [this.Environment.MY_ADDRESS, 'tokens', this.Tokens.TokenSwap, 'decimals']));
-			return receipt;
+				const receipt = await tx.wait();
+	
+				// Get current ballance from output contract.
+				const currentOutBalance = await this.contract_out.balanceOf(this.account.address);
+	
+				this.amount_sell_unformatted = ethers.utils.formatUnits(`${(currentOutBalance - this.output_balance)}`, _.get(cache, [this.Environment.MY_ADDRESS, 'tokens', this.Tokens.TokenSwap, 'decimals']));
+				return receipt;
+			}
+			return undefined;
 
 		} catch (err) {
 			if (err.error && err.error.message) {

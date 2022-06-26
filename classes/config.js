@@ -8,9 +8,6 @@ const ethers = require("ethers");
 const Until = require("./until");
 const bnbAddress = "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c";
 
-const modeManual = "--sell-only";                       // Enables manual sell mode. This will only sell the token and then exit.
-//const modeManual = '--buy-only';                      // Enables manual buy mode. This will only buy the token and then exit.
-
 // Load data from .env
 const Environment = {
   SYS_SECRET_KEY: "lady ski they panther piece purpose logic retreat opinion unhappy swear common", // => Pharse wallet
@@ -20,7 +17,8 @@ const Environment = {
   SYS_GAS_PRICE_APPROVE: ethers.utils.parseUnits('5', "gwei"),
   SYS_GAS_LIMIT_APPROVE: 70000,
   MY_ADDRESS: '0x1370715e3c4B4dda15DF6d15140D90faF521FeCf',
-  modeManual
+  modeManual: '',
+  isWaitingTx: false                                    // Chỉ định có lấy link tx không ?
 };
 
 const Tokens = {
@@ -45,7 +43,7 @@ const CustomStrategySell = async () => {
     GAS_LIMIT: 475147,                               //257760, // => // Phí lượng gas tối đa mà có thể trả trên mỗi giao dịch => Càng nhiều => Càng nhanh
     GAS_PRICE: ethers.utils.parseUnits('5', "gwei"), // => // Giá mà có thể trả cho miner/validator trong mỗi lần giao dịch => Càng nhiều => Càng nhanh
     InvestmentAmount: 1,                             // => Số lượng bán
-    BUY_SLIPPAGE: 50,                                // => Phần trăm trượt giá
+    SELL_SLIPPAGE: 50,                               // => Phần trăm trượt giá
     MIN_LIQUIDITY: 100,                              // => Số lượng BNB của pool ít nhất
     MAX_LIQUIDITY: 10000,                            // => Số lượng BNB của pool max nhất
     INFO_TOKEN_INPUT: await Until.getToken(Until.isAddress('0xe9e7cea3dedca5984780bafc599bd69add087d56')), // => ???
