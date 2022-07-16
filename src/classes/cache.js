@@ -50,7 +50,7 @@ class Cache {
    * @param {*} _decimals
    * @param {*} _symbol
    */
-  setAddressArtifacts(_address, _decimals, _symbol) {
+  setAddressArtifacts(_address, _decimals, _symbol, _balance) {
     if (!this.isAddressCached(_address)) this.createAddress(_address);
     _.set(this, [this.walletAddress.toString(), 'tokens', _address.toString()], {
       decimals: _decimals,
