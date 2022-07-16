@@ -3,17 +3,17 @@ const CFG = require("../../config");
 
 class Wallet {
     async load() {
-        this.config = CFG;
+        this.Environment = CFG.Environment ;
         try {
-            if (!this.config.wallet.is_wss) {
+            if (this.Environment.SYS_IS_WSS) {
                 // initialize stuff
-                this.node = new ethers.providers.WebSocketProvider(this.config.wallet.wss_node);
+                this.node = new ethers.providers.WebSocketProvider(this.Environment.SYS_WSS_NODE);
             } else {
                 // initialize stuff
-                this.node = new ethers.providers.JsonRpcProvider(this.config.wallet.https_node);
+                this.node = new ethers.providers.JsonRpcProvider(this.Environment.SYS_HTTPS_NODE);
             }
             // initialize account
-            this.wallet = new ethers.Wallet.fromMnemonic(this.config.wallet.secret_key);
+            this.wallet = new ethers.Wallet.fromMnemonic(this.Environment.SYS_SECRET_KEY);
             this.account = this.wallet.connect(this.node);
             
             // get network id for later use
@@ -23,8 +23,7 @@ class Wallet {
             this.bnb_balance = parseInt(await this.account.getBalance());
     
             // Load some more variables
-            this.base_nonce = parseInt(await this.node.getTransactionCount(this.account.address));
-    
+            this.base_nonce = parseInt(await this.node.getTransactionCount(this.account.address));    
             this.nonce_offset = 0;
             this.first_block = -1;
         } catch (e) {
@@ -55,6 +54,16 @@ class Wallet {
      */
      async _getAccount() {
         return this.account
+    }
+
+    /**
+	 * Get nonce
+	 * @returns 
+	 */
+    getNonce() {
+        let nonce = (this.base_nonce + this.nonce_offset);
+		this.nonce_offset++;
+		return nonce;
     }
 
 }

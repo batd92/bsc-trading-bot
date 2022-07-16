@@ -5,32 +5,6 @@
 /*=================================================*/
 
 const chalk = require('chalk');
-
-let originalLog = console.log;
-
-// console.log = function(msg) {
-// 	return originalLog(`[${getFormattedDate()}] ${msg}`);
-// }
-
-function getFormattedDate() {
-    let date = new Date();
-
-    let minutes = "", seconds = "";
-
-    if (date.getMinutes() < 10)
-        minutes = "0" + date.getMinutes();
-    else 
-        minutes = date.getMinutes();
-
-    if (date.getSeconds() < 10)
-        seconds = "0" + date.getSeconds();
-    else 
-        seconds = date.getSeconds();
-
-    let str = date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate() + " " + date.getHours() + ":" + minutes + ":" + seconds;
-    return str;
-}
-
 class Msg {
 	error(msg) { console.log(chalk.hex('#F62020')(msg)); }
 	success(msg) { console.log(chalk.hex('#669EE8')(msg)); }

@@ -3,7 +3,7 @@ const CFG = require("../../config");
 
 
 class ContractOut {
-    async init(account, token_output = CFG.contracts.output) {
+    async init(account, token_output = CFG.Tokens.TokenSwap) {
         this.account = account;
         this.token_output = token_output;
         this.contract_out = new ethers.Contract(
@@ -16,16 +16,54 @@ class ContractOut {
                 { "inputs": [], "name": "decimals", "outputs": [{ "internalType": "uint8", "name": "", "type": "uint8" }], "stateMutability": "view", "type": "function" },
                 { "inputs": [{ "internalType": "address", "name": "recipient", "type": "address" }, { "internalType": "uint256", "name": "amount", "type": "uint256" }], "name": "transfer", "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }], "stateMutability": "nonpayable", "type": "function" }
             ],
-            account //Pass connected account to purchase smart contract
+            account // Pass connected account to purchase smart contract
         );
+    }
+
+    /**
+     * Get contract out
+     */
+    async _getContractOut() {
         return this.contract_out;
     }
 
     /**
      * Get balance
      */
-    async _getBalance() {
-        return parseInt(await this.contract_out.balanceOf(this.account.address));
+    async _getBalance(account) {
+        return parseInt(await this.contract_out.balanceOf(account.address));
+    }
+
+    /**
+     * Get contract decimals, symbol
+     */
+    async getDecimalsAndSymbol() {
+        const symbolOut = await this.contract_out.symbol();
+        const decimalsOut = await this.contract_out.decimals();
+        return { decimalsOut, symbolOut };
+    }
+
+    /**
+     * Approve
+     * @param {*} nonce 
+     * @param {*} router 
+     * @param {*} maxInt 
+     * @returns 
+     */
+    async approve(nonce, router, maxInt) {
+        try {
+            return await this.contract_out.approve(
+                router.address,
+                maxInt,
+                {
+                    'gasLimit': CFG.Environment.SYS_GAS_LIMIT_APPROVE,
+                    'gasPrice': CFG.Environment.SYS_GAS_PRICE_APPROVE,
+                    'nonce': (nonce)
+                }
+            );
+        } catch (error) {
+            console.log('Lỗi Approve: ', error);
+        }
     }
 }
 

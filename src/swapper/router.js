@@ -16,6 +16,24 @@ class Router {
         );
         return this.router;
     }
+
+    /**
+     * Get AmountsOut
+     * @param {*} inputTokenAmount 
+     * @param {*} param1 
+     * @returns 
+     */
+    async getAmountsOut(inputTokenAmount, [from, to]) {
+        return await this.router.getAmountsOut(inputTokenAmount, [from, to]);
+    }
+
+    /**
+     * Get Router
+     * @returns 
+     */
+    getRouter() {
+        return this.router;
+    }
 }
 
 module.exports = new Router();

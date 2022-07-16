@@ -5,7 +5,6 @@ const dir = process.cwd();
 
 log4js.configure({
     appenders: {
-        console: {type: 'console'},
         app: {type: 'file', filename: path.join(dir, "./logs/app.log")}
     },
     categories: {

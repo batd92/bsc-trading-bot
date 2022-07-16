@@ -11,7 +11,6 @@ class Factory {
             ],
             account // pass connected account to pcs factory
         );
-        return this.factory;
     }
 
     /**

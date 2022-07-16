@@ -1,4 +1,5 @@
 const ethers = require('ethers');
+const CFG = require("../../config");
 
 class ContractIn {
     async init(account, token_in = '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c') {
@@ -16,15 +17,53 @@ class ContractIn {
             ],
             account //Pass connected account to purchase smart contract
         );
-        return this.contract_in;
     }
 
     /**
      * Get balance
      */
-         async _getBalance() {
-            return parseInt(await this.contract_in.balanceOf(this.account.address));
+    async _getBalance() {
+        return parseInt(await this.contract_in.balanceOf(this.account.address));
+    }
+
+    /**
+     * Get contract in
+     */
+    async _getContractIn() {
+        return this.contract_in;
+    }
+
+    /**
+     * Get contract decimals, symbol
+     */
+    async getDecimalsAndSymbol() {
+        const symbol = await this.contract_in.symbol();
+        const decimals = await this.contract_in.decimals();
+        return { symbol, decimals };
+    }
+
+    /**
+     * Approve
+     * @param {*} nonce 
+     * @param {*} router 
+     * @param {*} maxInt 
+     * @returns 
+     */
+    async approve(nonce, router, maxInt) {
+        try {
+            return await this.contract_in.approve(
+                router.address,
+                maxInt,
+                {
+                    'gasLimit': CFG.Environment.SYS_GAS_LIMIT_APPROVE,
+                    'gasPrice': CFG.Environment.SYS_GAS_PRICE_APPROVE,
+                    'nonce': (nonce)
+                }
+            );
+        } catch (error) {
+            console.log('Lỗi Approve: ', error);
         }
+    }
 }
 
 module.exports = new ContractIn();
