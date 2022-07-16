@@ -65,9 +65,16 @@ const getContractAddressByName = (_name = "") => {
     }
     return _name;
 }
-
+const sleep = async (t) => {
+  return new Promise(resolve => {
+      setTimeout(() => {
+          resolve(null)
+      }, t)
+  })
+}
 module.exports = {
     saveFileHistoryTrans,
     getToken,
-    getContractAddressByName
+    getContractAddressByName,
+    sleep
 }

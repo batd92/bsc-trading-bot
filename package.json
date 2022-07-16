@@ -7,11 +7,12 @@
     "chalk": "^4.1.2",
     "ethers": "^5.5.1",
     "isomorphic-fetch": "3.0.0",
-    "lodash": "4.17.21"
+    "lodash": "4.17.21",
+    "log4js": "6.6.0"
   },
   "devDependencies": {},
   "scripts": {
-    "main": "node no2l-script.js",
+    "main": "node monitor.js",
     "pairs": "node pancake-swap.js"
   },
   "author": "",

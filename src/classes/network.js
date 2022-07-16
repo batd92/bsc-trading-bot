@@ -4,91 +4,25 @@
 /*                                                 */
 /*=================================================*/
 
-const ethers = require('ethers');
 const msg = require('./msg.js');
 const cache = require('./cache.js');
 
 class Network {
-	async load(config) {
-		this.config = config.cfg;
-		try {
-			if (!this.config.wallet.is_wss) {
-				// initialize stuff
-				this.node = new ethers.providers.WebSocketProvider(this.config.wallet.wss_node);
-			} else {
-				// initialize stuff
-				this.node = new ethers.providers.JsonRpcProvider(this.config.wallet.https_node);
-			}
-			// initialize account
-			this.wallet = new ethers.Wallet.fromMnemonic(this.config.wallet.secret_key);
-			this.account = this.wallet.connect(this.node);
-			
-			// get network id for later use
-			this.network = await this.node.getNetwork();
-
-			// pcs stuff for later use
-			this.factory = new ethers.Contract(
-				'0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73',
-				[
-					'event PairCreated(address indexed token0, address indexed token1, address pair, uint)',
-					'function getPair(address tokenA, address tokenB) external view returns (address pair)'
-				],
-				this.account // pass connected account to pcs factory
-			);
-
-			this.router = new ethers.Contract(
-				'0x10ED43C718714eb63d5aA57B78B54704E256024E',
-				[
-					'function getAmountsOut(uint amountIn, address[] memory path) public view returns (uint[] memory amounts)',
-					'function swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external returns (uint[] memory amounts)',
-					'function swapExactTokensForTokensSupportingFeeOnTransferTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external returns (uint[] memory amounts)',
-					'function swapExactETHForTokensSupportingFeeOnTransferTokens(uint amountOutMin, address[] calldata path, address to, uint deadline) external payable',
-					'function swapExactTokensForETHSupportingFeeOnTransferTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external',
-					'function swapETHForExactTokens(uint amountOut, address[] calldata path, address to, uint deadline) external  payable returns (uint[] memory amounts)'
-				],
-				this.account // Pass connected account to pcs router
-			);
-
-			this.contract_in = new ethers.Contract(
-				this.config.contracts.input,
-				[
-					{ "constant": true, "inputs": [{ "name": "_owner", "type": "address" }], "name": "balanceOf", "outputs": [{ "name": "balance", "type": "uint256" }], "payable": false, "type": "function" },
-					{ "constant": false, "inputs": [{ "name": "guy", "type": "address" }, { "name": "wad", "type": "uint256" }], "name": "approve", "outputs": [{ "name": "approved", "type": "bool" }], "payable": false, "type": "function" },
-					{ "constant": true, "inputs": [{ "name": "sender", "type": "address" }, { "name": "guy", "type": "address" }], "name": "allowance", "outputs": [{ "name": "allowed", "type": "uint256" }], "payable": false, "type": "function" },
-					{ "constant": true, "inputs": [], "name": "symbol", "outputs": [{ "name": "outname", "type": "string" }], "payable": false, "type": "function" },
-					{ "inputs": [], "name": "decimals", "outputs": [{ "internalType": "uint8", "name": "", "type": "uint8" }], "stateMutability": "view", "type": "function" },
-					{ "inputs": [{ "internalType": "address", "name": "recipient", "type": "address" }, { "internalType": "uint256", "name": "amount", "type": "uint256" }], "name": "transfer", "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }], "stateMutability": "nonpayable", "type": "function" }
-				],
-				this.account // Pass connected account to bnb smart contract
-			);
-
-			this.contract_out = new ethers.Contract(
-				this.config.contracts.output,
-				[
-					{ "constant": true, "inputs": [{ "name": "_owner", "type": "address" }], "name": "balanceOf", "outputs": [{ "name": "balance", "type": "uint256" }], "payable": false, "type": "function" },
-					{ "constant": false, "inputs": [{ "name": "guy", "type": "address" }, { "name": "wad", "type": "uint256" }], "name": "approve", "outputs": [{ "name": "approved", "type": "bool" }], "payable": false, "type": "function" },
-					{ "constant": true, "inputs": [{ "name": "sender", "type": "address" }, { "name": "guy", "type": "address" }], "name": "allowance", "outputs": [{ "name": "allowed", "type": "uint256" }], "payable": false, "type": "function" },
-					{ "constant": true, "inputs": [], "name": "symbol", "outputs": [{ "name": "outname", "type": "string" }], "payable": false, "type": "function" },
-					{ "inputs": [], "name": "decimals", "outputs": [{ "internalType": "uint8", "name": "", "type": "uint8" }], "stateMutability": "view", "type": "function" },
-					{ "inputs": [{ "internalType": "address", "name": "recipient", "type": "address" }, { "internalType": "uint256", "name": "amount", "type": "uint256" }], "name": "transfer", "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }], "stateMutability": "nonpayable", "type": "function" }
-				],
-				this.account //Pass connected account to purchase smart contract
-			);
-
-			// Load user balances (for later use)
-			this.bnb_balance = parseInt(await this.account.getBalance());
-			this.input_balance = parseInt((this.isETH(this.config.contracts.input) ? this.bnb_balance : await this.contract_in.balanceOf(this.account.address)));
-			this.output_balance = parseInt((this.isETH(this.config.contracts.output) ? this.bnb_balance : await this.contract_out.balanceOf(this.account.address)));
-
-			// Load some more variables
-			this.base_nonce = parseInt(await this.node.getTransactionCount(this.account.address));
-
-			this.nonce_offset = 0;
-			this.first_block = -1;
-		} catch (e) {
-			msg.error(`[error::network] ${e}`);
-			process.exit();
-		}
+	/**
+	 * constructor
+	 * @param {*} account 
+	 * @param {*} factory 
+	 * @param {*} router 
+	 * @param {*} contract_in 
+	 * @param {*} contract_out 
+	 */
+	constructor(payload) {
+		const { account, factory, router, contract_in, contract_out } = payload;
+		this.account = account;
+		this.factory = factory;
+		this.router = router;
+		this.contract_in = contract_in;
+		this.contract_out = contract_out; 
 	}
 
 	async prepare() {
@@ -303,11 +237,6 @@ class Network {
 	}
 
 	async transactFromTokenToBNB(from, to) {
-		// Check token in your wallet
-		// if (this.output_balance === 0) {
-		// 	msg.error(`[error::transact] The amount of tokens (${this.config.contracts.output}) in your wallet is Zero.`);
-		// 	process.exit();
-		// }
 		try {
 			const isProfit = true;
 			const output_balance = await this.contract_out.balanceOf(this.config.contracts.output);
@@ -388,5 +317,3 @@ class Network {
 		}
 	}
 }
-
-module.exports = new Network();

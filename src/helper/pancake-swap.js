@@ -3,7 +3,6 @@
 /*              Written By TàoBa.                  */
 /*                                                 */
 /*=================================================*/
-const { msg } = require('./classes/main.js');
 const fs = require("fs");
 const fetch = require("isomorphic-fetch");
 const _ = require("lodash");
