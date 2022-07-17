@@ -1,5 +1,6 @@
 const ethers = require('ethers');
 const CFG = require("../../config");
+const Msg = require('./src/classes/msg');
 
 class Wallet {
     async load() {
@@ -27,7 +28,7 @@ class Wallet {
             this.nonce_offset = 0;
             this.first_block = -1;
         } catch (e) {
-            msg.error(`[error::network] ${e}`);
+            Msg.error(`[error::network] ${e}`);
             process.exit();
         }
     }

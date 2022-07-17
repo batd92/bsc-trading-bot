@@ -7,6 +7,7 @@
 const fs = require("fs");
 const _ = require("lodash");
 
+
 const pathPairsFormPancakeSwap = "storage.local/pairsFormPancakeSwap.json";
 class Cache {
   async load(wallet) {
