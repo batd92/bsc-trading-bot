@@ -64,19 +64,23 @@ class Monitor extends EventEmitter {
      */
     async monitWallet() {
         // Get token 
-        let outputAmount = await this.contract_out._getBalance(await this.account._getAccount());
+        let { outputAmount, raw } = await this.contract_out._getBalance(await this.account._getAccount());
+        let bnb = await this.account._getBalance();
+
         while (this.running) {
             await Until.sleep(500);
             console.clear();
             Msg.primary('Đang quét ví .... ');
+            Msg.warning(`Số lượng BNB trong ví:  ${bnb}`);
+            Msg.warning(`Số lượng token trong ví: ${outputAmount}`);
+            Msg.warning(`Số lượng token trong ví trước đó: ${this.outputAmount}`);
             // Truy vấn số token trong ví
             if (outputAmount !== this.outputAmount && outputAmount > this.outputAmount) {
                 Msg.warning('Đang bán token .... ');
-                this.emit('wallet.update.output_token', this);
+                this.emit('wallet.update.output_token', { raw, network: this.network });
                 this.outputAmount = outputAmount;
-                // Chỉ bán 1 lần
-                this.running = false;
             }
+            this.running = false;
         }
     }
 }
@@ -89,10 +93,12 @@ const scheduleMonitor = async () => {
 
     // // Tự động bán khi đạt đến bội số nhất định
     monitor.on('wallet.update.output_token', async (payload) => {
-        if (this.prepare) {
-            this.prepare = await payload.network.prepare();
-        }
-        await payload.network.transactFromTokenToBNB(CFG.Tokens.TokenSwap, CFG.Tokens.BNB);
+        // if (this.prepare) {
+        //     this.prepare = await payload.network.prepare();
+        // }
+        console.time('time-sell');
+        await payload.network.transactFromTokenToBNB(CFG.Tokens.TokenSwap, CFG.Tokens.BNB, payload.raw);
+        console.timeEnd('time-sell');
     })
 }
 

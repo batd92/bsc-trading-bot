@@ -11,7 +11,7 @@ const CFG = require("../../config");
 
 class Network {
 	/**
-	 * constructor
+	 * Constructor
 	 * @param {*} account 
 	 * @param {*} factory 
 	 * @param {*} router 
@@ -27,12 +27,16 @@ class Network {
 		this.contract_out = contract_out;
 	}
 
+	/**
+	 * Approve
+	 * @returns 
+	 */
 	async prepare() {
 		try {
 			msg.primary(`[debug::network] Preparing network..`);
 			// Format maxInt.
 			const maxInt = (ethers.BigNumber.from("2").pow(ethers.BigNumber.from("256").sub(ethers.BigNumber.from("1")))).toString();
-			const { decimalsOut, symbolOut } = await this.contract_out.getDecimalsAndSymbol();
+			const out = await this.contract_out.getDecimalsAndSymbol();
 			const { decimals, symbol } = await this.contract_in.getDecimalsAndSymbol();
 			
 			// Cache & prepare contracts
@@ -59,8 +63,8 @@ class Network {
 
 			// Cache & prepare contracts
 			if (!cache.isAddressCached(CFG.Tokens.TokenSwap)) {
-				cache.setAddressArtifacts(CFG.Tokens.TokenSwap, decimalsOut, symbolOut);
-				msg.primary(`[debug::network] Approving balance for ${symbolOut}.`);
+				cache.setAddressArtifacts(CFG.Tokens.TokenSwap, out.decimals, out.symbol);
+				msg.primary(`[debug::network] Approving balance for ${out.symbol}.`);
 
 				// Approve output (for later)
 				const outTx = await this.contract_out.approve(this.getNonce(), this.router.getRouter(), maxInt);
@@ -68,16 +72,16 @@ class Network {
 				let outReceipt = await outTx.wait();
 
 				if (!outReceipt.logs[0].transactionHash) {
-					msg.error(`[error::network] Could not approve ${symbolOut}. (cache)`);
+					msg.error(`[error::network] Could not approve ${out.symbol}. (cache)`);
 					process.exit();
 				}
 
-				msg.success(`[debug::network] ${symbolOut} has been approved. (cache)`);
+				msg.success(`[debug::network] ${out.symbol} has been approved. (cache)`);
 				cache.setApproved(CFG.Tokens.TokenSwap);
 				await cache.save();
 
 			} else {
-				msg.success(`[debug::network] ${symbolOut} has already been approved. (cache)`);
+				msg.success(`[debug::network] ${out.symbol} has already been approved. (cache)`);
 			}
 
 			// Now that the cache is done, restructure variables
@@ -88,26 +92,15 @@ class Network {
 		}
 	}
 
-	// Wrapper function for swapping
+	/**
+	 * Wrapper function for swapping
+	 * @param {*} amountIn 
+	 * @param {*} amountOutMin 
+	 * @param {*} contracts 
+	 * @returns 
+	 */
 	async swapFromTokenToToken(amountIn, amountOutMin, contracts) {
-		try {
-			return this.router.swapExactETHForTokensSupportingFeeOnTransferTokens(
-				amountOutMin,
-				contracts,
-				this.account.address,
-				(Date.now() + 1000 * 60 * 10),
-				{
-					'value': amountIn,
-					'gasLimit': CFG.CustomStrategyBuy.GAS_LIMIT,
-					'gasPrice': CFG.CustomStrategyBuy.GAS_PRICE,
-					'nonce': (this.getNonce())
-				}
-			);
-
-		} catch (e) {
-			console.log(`[error::swap] ${e.error}`);
-			process.exit();
-		}
+		return this.router.swapExactETHForTokensSupportingFeeOnTransferTokens(amountOutMin, contracts, (await this.account._getAccount()).address, amountIn);
 	}
 
 	/**
@@ -118,32 +111,7 @@ class Network {
 	 * @returns 
 	 */
 	async estimateTransaction(amountIn, amountOutMin, contracts) {
-		try {
-			let gas = await this.router.estimateGas.swapExactETHForTokensSupportingFeeOnTransferTokens(
-				amountOutMin,
-				contracts,
-				this.account.address,
-				(Date.now() + 1000 * 60 * 10),
-				{
-					'value': amountIn,
-					'gasLimit': CFG.CustomStrategyBuy.GAS_LIMIT,
-					'gasPrice': CFG.CustomStrategyBuy.GAS_PRICE
-				}
-			);
-
-			// TODO: Check (fee gas + fee buy) <= money in wallet => gas increase
-			// Check if is using enough gas.
-			if (gas > parseInt(CFG.CustomStrategyBuy.GAS_LIMIT)) {
-				msg.error(`[error::simulate] The transaction requires at least ${gas} gas, your limit is ${CFG.CustomStrategyBuy.GAS_LIMIT}.`);
-				process.exit();
-			}
-			return true;
-		} catch (e) {
-			// TODO: Check (fee gas + fee buy) <= money in wallet => gas increase
-			console.log(`[error::estimate_gas] ${e}`);
-			//return this.estimateTransaction(amountIn, amountOutMin, contracts);
-			process.exit();
-		}
+		return await this.router.estimateTransaction(amountIn, amountOutMin, contracts);
 	}
 
 	/**
@@ -177,9 +145,10 @@ class Network {
 				[from, to]
 			);
 
-			msg.success(`[debug::transact] TX has been submitted. Waiting for response..\n`);
-			msg.success(`[debug::transact] ✔ Buy done. \n`);
+			msg.success(`[debug::transact] ✔ Buy done.... \n`);
+			if (CFG.Environment.isNotNeedTx) return;
 
+			msg.success(`[debug::transact] TX has been submitted. Waiting for response..\n`);
 			let receipt = await tx.wait();
 
 			// get current ballance from output contract.
@@ -197,10 +166,20 @@ class Network {
 		}
 	}
 
+	/**
+	 * Check address
+	 * @param {*} token 
+	 * @returns 
+	 */
 	isETH(token) {
 		return (token.toLowerCase() === ('0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c').toLowerCase());
 	}
 
+	/**
+	 * Check Liquidity
+	 * @param {*} pair 
+	 * @returns 
+	 */
 	async getLiquidity(pair) {
 		const bnbValue = await this.contract_in.balanceOf(pair);
 		const formattedbnbValue = await ethers.utils.formatEther(bnbValue);
@@ -214,6 +193,12 @@ class Network {
 		return formattedbnbValue;
 	}
 
+	/**
+	 * Get pair
+	 * @param {*} contract_in 
+	 * @param {*} contract_out 
+	 * @returns 
+	 */
 	async getPair(contract_in, contract_out) {
 		// Get pair address
 		const pair = cache.getPairFromCache(contract_in, contract_out) || await this.factory.getPair(contract_in, contract_out);
@@ -223,6 +208,11 @@ class Network {
 		return pair;
 	}
 
+	/**
+	 * Check Pair
+	 * @param {*} pair 
+	 * @returns 
+	 */
 	async isPairAddress(pair) {
 		// No pair found, re-launch
 		if (!pair || (pair.toString().indexOf('0x0000000000000') > -1)) {
@@ -246,16 +236,16 @@ class Network {
 	 * @param {*} to 
 	 * @returns 
 	 */
-	async transactFromTokenToBNB(from, to) {
+	async transactFromTokenToBNB(from, to, output_balance) {
 		msg.primary('✔ Sell ... ');
 		try {
+			console.time('Time-SettingSell');
 			const isProfit = true;
-			const output_balance = await this.contract_out._getBalance(await this.account._getAccount());
+			// const output_balance = await this.contract_out._getBalanceRaw();
 			if (output_balance === CFG.CustomStrategySell.MIN_AMOUNT)  return;
 			// Get the amount of tokens in the wallet your
 			let balanceString;
-			const { decimals } = await this.contract_out.getDecimalsAndSymbol();;
-
+			const decimals = 18; // await this.contract_out.getDecimalsAndSymbol();
 			// Convert amount and calculate selling profit or loss
 			const convertBalance = (balance, decimals, percentToSell) => {
 				return (parseFloat(ethers.utils.formatUnits(balance.toString(), decimals)) * (percentToSell / 100)).toFixed(decimals).toString()
@@ -268,36 +258,30 @@ class Network {
 			// Get balance to sell current
 			const balanceToSell = ethers.utils.parseUnits(balanceString, decimals);
 			// Get output amounts of token on pancake swap. Includes price current
+			console.time('Time-getAmountsOut');
 			const sellAmount = await this.router.getAmountsOut(balanceToSell, [from, to]);
+			console.timeEnd('Time-getAmountsOut');
 			// Calculate min output with current slippage in bnb
 			const amountOutMin = sellAmount[1].sub(sellAmount[1].div(2));
+			console.timeEnd('Time-SettingSell');
 
-			// Simulate transaction to verify outputs.
-			const estimationPassed = await this.estimateTransaction(sellAmount[0].toString(), amountOutMin, [from, to]);
-
-			// If simulation passed, notify, else, exit
-			if (estimationPassed) {
-				msg.success(`[debug::transact] Estimation passed successfully. proceeding with transaction.`);
-			} else {
-				msg.error(`[error::transact] Estimation did not pass checks. exiting..`);
-				process.exit();
-			}
-
+			console.time('Time-sellTokenOnPancakeSwap');
 			const tx = await this.sellTokenOnPancakeSwap(
 				sellAmount[0].toString(),
 				amountOutMin,
 				[from, to]
 			);
+			console.timeEnd('Time-sellTokenOnPancakeSwap');
+			msg.success(`[debug::transact] ✔ Sell done...... \n`);
+			if (CFG.Environment.isNotNeedTx) return;
 
 			msg.success(`[debug::transact] TX has been submitted. Waiting for response..\n`);
-			msg.success(`[debug::transact] ✔ Sell done. \n`);
-
 			const receipt = await tx.wait();
 
 			// Get current ballance from output contract.
 			const currentOutBalance = await this.contract_out._getBalance(await this.account._getAccount());
 
-			this.amount_sell_unformatted = ethers.utils.formatUnits(`${(currentOutBalance - this.output_balance)}`, cache.tokens[CFG.Tokens.TokenSwap].decimals);
+			this.amount_sell_unformatted = ethers.utils.formatUnits(`${(currentOutBalance - this.output_balance)}`, decimals);
 			return receipt;
 
 		} catch (err) {
@@ -305,22 +289,23 @@ class Network {
 				msg.error(`[error::transact] ${err.error.message}`);
 			} else
 				console.log(err);
-			return this.transactFromTokenToBNB(from, to);
+				return this.transactFromTokenToBNB(from, to, output_balance);
 		}
 	}
 
+	/**
+	 * Swap Token
+	 * @param {*} sellAmount 
+	 * @param {*} amountOutMin 
+	 * @param {*} contracts 
+	 * @returns 
+	 */
 	async sellTokenOnPancakeSwap(sellAmount, amountOutMin, contracts) {
 		try {
 			return this.router.swapExactTokensForETHSupportingFeeOnTransferTokens(
 				sellAmount,   // The amount of input tokens to send.
 				amountOutMin, // The minimum amount of output tokens that must be received for the transaction not to revert.
-				contracts,    // An array of token addresses. path.length must be >= 2. Pools for each consecutive pair of addresses must exist and have liquidity.
-				CFG.Environment.MY_ADDRESS, // Recipient of the ETH.
-				Math.floor(Date.now() / 1000) + 60 * 20, // (Date.now() + 1000 * 60 * 10)
-				{
-					'gasLimit': CFG.CustomStrategySell.GAS_LIMIT,
-					'gasPrice': CFG.CustomStrategySell.GAS_PRICE
-				}
+				contracts
 			);
 		} catch (error) {
 			console.log(`[error::swap] ${e.error}`);

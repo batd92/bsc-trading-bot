@@ -28,7 +28,7 @@ class Wallet {
             this.nonce_offset = 0;
             this.first_block = -1;
         } catch (e) {
-            Msg.error(`[error::network] ${e}`);
+            Msg.error(`[Wallet::error] ${e}`);
             process.exit();
         }
     }
@@ -38,7 +38,7 @@ class Wallet {
      * @returns 
      */
     async _getBalance() {
-        return this.bnb_balance;
+        return ethers.utils.formatEther(await this.account.getBalance());
     }
 
     /**

@@ -30,17 +30,21 @@ class ContractOut {
     /**
      * Get balance
      */
-    async _getBalance(account) {
-        return parseInt(await this.contract_out.balanceOf(account.address));
+    async _getBalance() {
+        const raw = await this.contract_out.balanceOf(this.account.address);
+        return {
+            outputAmount: ethers.utils.formatEther(raw),
+            raw
+        }
     }
 
     /**
      * Get contract decimals, symbol
      */
     async getDecimalsAndSymbol() {
-        const symbolOut = await this.contract_out.symbol();
-        const decimalsOut = await this.contract_out.decimals();
-        return { decimalsOut, symbolOut };
+        const symbol = await this.contract_out.symbol();
+        const decimals = await this.contract_out.decimals();
+        return { decimals, symbol };
     }
 
     /**

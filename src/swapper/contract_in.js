@@ -23,7 +23,7 @@ class ContractIn {
      * Get balance
      */
     async _getBalance() {
-        return parseInt(await this.contract_in.balanceOf(this.account.address));
+        return ethers.utils.formatEther(await this.contract_in.balanceOf(this.account.address));
     }
 
     /**
