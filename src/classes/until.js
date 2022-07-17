@@ -77,7 +77,7 @@ const sleep = async (t) => {
 const isAddress = (address) => {
   if (ethers.utils.isAddress(address)) return address;
   msg.error(
-    `[error::config] Contract "${_name}" does not exist, please use an address instead.`
+    `[error::config] Contract "${address}" does not exist, please use an address instead.`
   );
   process.exit();
 }
