@@ -1,6 +1,6 @@
 const ethers = require('ethers');
 const CFG = require("../../config");
-const Msg = require('./src/classes/msg');
+const Msg = require('../classes/msg');
 
 class Wallet {
     async load() {

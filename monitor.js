@@ -15,6 +15,7 @@ const CFG = require('./config');
 const { Network } = require('./src/swapper/network');
 const EventEmitter = require('events').EventEmitter;
 const Msg = require('./src/classes/msg');
+
 // Main
 class Monitor extends EventEmitter {
     constructor(account, factory, contract_in, contract_out, router) {

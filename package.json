@@ -1,8 +1,7 @@
 {
-  "name": "no2l-script",
+  "name": "fetchpancake",
   "version": "1.0.0",
   "description": "Written By TàoBa.",
-  "main": "node app.js",
   "dependencies": {
     "chalk": "^4.1.2",
     "ethers": "^5.5.1",
@@ -13,8 +12,8 @@
   },
   "devDependencies": {},
   "scripts": {
-    "main": "node app.js",
-    "pairs": "node pancake-swap.js"
+    "main": "node main.js",
+    "pairs": "node modules/pairs.js"
   },
   "author": "",
   "license": "ISC"

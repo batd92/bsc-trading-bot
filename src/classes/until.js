@@ -1,7 +1,7 @@
 const fs = require('fs');
 const fetch = require('isomorphic-fetch');
 const ethers = require("ethers");
-const msg = require('./src/classes/msg');
+const msg = require('../classes/msg');
 
 /**
  * Format ddyymm
