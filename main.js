@@ -1,11 +1,68 @@
-var express = require('express');
-var app = express();
 const Monitor = require('./monitor');
-var server = app.listen(3000, function () {
-  var host = server.address().address;
-  var port = server.address().port;
-  console.log('--------KillerSmile------ \n');
-  console.log(`--------TàoBa.Nụ and ${port}------ `);
-});
+console.clear();
+console.log('--------KillerSmile------ ');
+console.log(`--------_TàoBa.Nụ <3_------ \n`);
 
-Monitor.scheduleMonitor();
+const prompts = require("prompts");
+
+// Feature
+const question = [
+    {
+        type: "select",
+        name: "feature",
+        message: "Please select the function you want to perform ?",
+        choices: [
+            { title: "Auto/manual selling", value: "--sell" },
+            { title: "Auto/manual buy", value: "--buy" },
+            { title: "Unicrypt Burn", value: "--unicrypt" },
+            { title: "Approve Token", value: "--approve" },
+            { title: "Exit", value: "--exit" },
+        ],
+        initial: 1,
+    },
+];
+
+// Main
+(async () => {
+    const { feature } = await prompts(question);
+    if (feature) {
+        switch (feature) {
+            case '--sell':
+                console.clear();
+                console.log("Sell....");
+                await Monitor.scheduleMonitor({ canSell: true });
+                break;
+            case '--buy':
+                console.clear();
+                console.log("Buy....");
+                await Monitor.scheduleMonitor({ canBuy: true });
+                break;
+            case '--unicrypt':
+                console.clear();
+                console.log("Unicrypt....");
+                await Monitor.scheduleMonitor({ canUnicrypt: true });
+                break;
+            case '--approve':
+                console.clear();
+                console.log("Approve....");
+                await Monitor.scheduleMonitor({ canApprove: true });
+                break;
+            case '--exit':
+                console.clear();
+                console.log("Exit program....");
+                process.exit();
+            default:
+                console.clear();
+                console.log("Exit program....");
+                process.exit();
+        }
+    }
+})();
+
+setInterval(() => { }, 1 << 30);
+
+// Error handler
+process.on("uncaughtException", (err) => {
+    console.log(`[error::no2l-script] Exception: ${err}`);
+    process.exit();
+});

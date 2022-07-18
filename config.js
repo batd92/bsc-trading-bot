@@ -48,7 +48,7 @@ const CustomStrategySell = () => {
     MIN_LIQUIDITY: 100,                              // => Số lượng BNB của pool ít nhất
     MAX_LIQUIDITY: 10000,                            // => Số lượng BNB của pool max nhất
     //INFO_TOKEN_INPUT: await Until.getToken(Until.isAddress('0xe9e7cea3dedca5984780bafc599bd69add087d56')), // => ???
-    percentOfTokensToSellProfit: 100,                 // Enter percent of tokens to sell when profit reached
+    percentOfTokensToSellProfit: 25,                 // Enter percent of tokens to sell when profit reached
     percentOfTokensToSellLoss: 0,                    // Enter percent of tokens to sell when stop loss reached,
     MIN_AMOUNT: 0
   }

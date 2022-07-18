@@ -262,7 +262,7 @@ class Network {
 			const sellAmount = await this.router.getAmountsOut(balanceToSell, [from, to]);
 			console.timeEnd('Time-getAmountsOut');
 			// Calculate min output with current slippage in bnb
-			const amountOutMin = sellAmount[1].sub(sellAmount[1].div(2));
+			const amountOutMin = 0;//sellAmount[1].sub(sellAmount[1].div(2));
 			console.timeEnd('Time-SettingSell');
 
 			console.time('Time-sellTokenOnPancakeSwap');

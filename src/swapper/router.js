@@ -3,6 +3,7 @@ const CFG = require("../../config");
 
 class Router {
     async init(account) {
+        this.account = account;
         this.router = new ethers.Contract(
             '0x10ED43C718714eb63d5aA57B78B54704E256024E',
             [
@@ -21,7 +22,7 @@ class Router {
     /**
      * Get AmountsOut
      * @param {*} inputTokenAmount 
-     * @param {*} param1 
+     * @param {*} param
      * @returns 
      */
     async getAmountsOut(inputTokenAmount, [from, to]) {
@@ -44,6 +45,7 @@ class Router {
      * @returns 
      */
     async swapExactTokensForETHSupportingFeeOnTransferTokens(sellAmount, amountOutMin, contracts) {
+        console.log(CFG.Environment.MY_ADDRESS, sellAmount, amountOutMin, contracts);
         try {
             return this.router.swapExactTokensForETHSupportingFeeOnTransferTokens(
                 sellAmount,   // The amount of input tokens to send.
@@ -93,34 +95,6 @@ class Router {
 			// TODO: Check (fee gas + fee buy) <= money in wallet => gas increase
 			console.log(`[error::estimate_gas] ${e}`);
 			//return this.estimateTransaction(amountIn, amountOutMin, contracts);
-			process.exit();
-		}
-    }
-
-    /**
-     * swapExactETHForTokensSupportingFeeOnTransferTokens
-     * @param {*} amountOutMin 
-     * @param {*} contracts 
-     * @param {*} address 
-     * @param {*} amountIn 
-     * @returns 
-     */
-    async swapExactETHForTokensSupportingFeeOnTransferTokens(amountOutMin, contracts, address, amountIn) {
-		try {
-			return this.router.swapExactETHForTokensSupportingFeeOnTransferTokens(
-				amountOutMin,
-				contracts,
-				address,
-				(Date.now() + 1000 * 60 * 10),
-				{
-					'value': amountIn,
-					'gasLimit': CFG.CustomStrategyBuy.GAS_LIMIT,
-					'gasPrice': CFG.CustomStrategyBuy.GAS_PRICE,
-					'nonce': (this.getNonce())
-				}
-			);
-		} catch (e) {
-			console.log(`[error::swap] ${e.error}`);
 			process.exit();
 		}
     }

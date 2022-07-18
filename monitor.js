@@ -43,7 +43,7 @@ class Monitor extends EventEmitter {
     /**
      * Start
      */
-    start() {
+    startCheckWallet() {
         this.running = true;
         this.prepare = false;
         this.monitWallet().then();
@@ -83,23 +83,60 @@ class Monitor extends EventEmitter {
             this.running = false;
         }
     }
+
+    /**
+     * Auto buy token
+     */
+    async canBuyWithoutChecking() {
+        // prepare
+        await this.network.prepare();
+        console.time('time-buy');
+        await this.network.transactToken(CFG.Tokens.BNB, CFG.Tokens.TokenSwap);
+        console.timeEnd('time-buy');
+    }
 }
 
-
-const scheduleMonitor = async () => {
+/**
+ * Schedule Main
+ * @param {*} param0 
+ * @returns 
+ */
+const scheduleMonitor = async ({ canBuy = undefined, canSell = undefined, canUnicrypt = undefined, canApprove = undefined }) => {
     const monitor = new Monitor(Wallet, Factory, ContractIn, ContractOut, Router);
-     await monitor.load();
-    monitor.start();
+    await monitor.load();
 
-    // // Tự động bán khi đạt đến bội số nhất định
-    monitor.on('wallet.update.output_token', async (payload) => {
-        // if (this.prepare) {
-        //     this.prepare = await payload.network.prepare();
-        // }
-        console.time('time-sell');
-        await payload.network.transactFromTokenToBNB(CFG.Tokens.TokenSwap, CFG.Tokens.BNB, payload.raw);
-        console.timeEnd('time-sell');
-    })
+    // Nếu chỉ mua thì mua xong và thoát
+    if (canBuy) {
+        await monitor.canBuyWithoutChecking();
+        return;
+    }
+
+    // Nếu chỉ có bán
+    if (canSell) {
+        monitor.startCheckWallet();
+
+        // Tự động bán khi đạt đến bội số nhất định
+        monitor.on('wallet.update.output_token', async (payload) => {
+            if (this.prepare) {
+                this.prepare = await payload.network.prepare();
+            }
+            console.time('time-sell');
+            await payload.network.transactFromTokenToBNB(CFG.Tokens.TokenSwap, CFG.Tokens.BNB, payload.raw);
+            console.timeEnd('time-sell');
+        });
+    }
+
+    // Nếu chỉ đốt token
+    if (canUnicrypt) {
+        console.log('burn token, check số lượng người bán và số lượng token burn');
+        return;
+    }
+
+    // Nếu chỉ có approve
+    if (canApprove) {
+        console.log('Check token là scam không?, Trước khi approve');
+        return;
+    }
 }
 
 module.exports = { scheduleMonitor };
