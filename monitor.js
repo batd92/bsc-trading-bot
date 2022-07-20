@@ -41,7 +41,7 @@ class Monitor extends EventEmitter {
     }
 
     /**
-     * Start
+     * Start wallet
      */
     startCheckWallet() {
         this.running = true;
@@ -50,12 +50,20 @@ class Monitor extends EventEmitter {
     }
 
     /**
+     * Start Liquidity
+     */
+    startLiquidity() {
+        this.runCheckLiquidity = true;
+        this.monitLiquidity().then();
+    }
+
+    /**
      * Run
      */
     async run() {
         while (this.running) {
             await sleep(500)
-            await this.fetchTrade()
+            // await this.fetchTrade()
         }
     }
 
@@ -79,8 +87,21 @@ class Monitor extends EventEmitter {
                 Msg.warning('Đang bán token .... ');
                 this.emit('wallet.update.output_token', { raw, network: this.network });
                 this.outputAmount = outputAmount;
+                this.emit('wallet.loaded');
             }
             this.running = false;
+        }
+    }
+
+    /**
+     * monit Liquidity
+     */
+    async monitLiquidity() {
+        while (this.runCheckLiquidity) {
+            const bnb = await this.network.getLiquidity('0x58F876857a02D6762E0101bb5C46A8c1ED44Dc16');
+            const priceBusd = await this.network.getPriceTokenOutput('0x58F876857a02D6762E0101bb5C46A8c1ED44Dc16');
+            console.log('bnb monit liquidity ', bnb, priceBusd);
+            // Check nếu có sự thay đổi về liquidity thì bán token
         }
     }
 
@@ -94,6 +115,16 @@ class Monitor extends EventEmitter {
         await this.network.transactToken(CFG.Tokens.BNB, CFG.Tokens.TokenSwap);
         console.timeEnd('time-buy');
     }
+
+    /**
+     * Get Profit
+     * @param {*} currentPrice 
+     * @param {*} oldPrice 
+     * @returns 
+     */
+     async getProfit(currentPrice, oldPrice) {
+        return currentPrice/oldPrice;
+     }
 }
 
 /**
@@ -101,7 +132,7 @@ class Monitor extends EventEmitter {
  * @param {*} param0 
  * @returns 
  */
-const scheduleMonitor = async ({ canBuy = undefined, canSell = undefined, canUnicrypt = undefined, canApprove = undefined }) => {
+const scheduleMonitor = async ({ canBuy = undefined, canSell = undefined, canUnicrypt = undefined, canApprove = undefined, canLiquidity = undefined }) => {
     const monitor = new Monitor(Wallet, Factory, ContractIn, ContractOut, Router);
     await monitor.load();
 
@@ -121,13 +152,14 @@ const scheduleMonitor = async ({ canBuy = undefined, canSell = undefined, canUni
                 this.prepare = await payload.network.prepare();
             }
             console.time('time-sell');
-            await payload.network.transactFromTokenToBNB(CFG.Tokens.TokenSwap, CFG.Tokens.BNB, payload.raw);
+            await payload.network.sellTokens(CFG.Tokens.TokenSwap, CFG.Tokens.BNB, payload.raw);
             console.timeEnd('time-sell');
         });
     }
 
     // Nếu chỉ đốt token
     if (canUnicrypt) {
+        monitor.startLiquidity();
         console.log('burn token, check số lượng người bán và số lượng token burn');
         return;
     }
@@ -137,6 +169,32 @@ const scheduleMonitor = async ({ canBuy = undefined, canSell = undefined, canUni
         console.log('Check token là scam không?, Trước khi approve');
         return;
     }
+
+    // Auto bán theo liquidity change
+    if (canLiquidity) {
+        console.log('Đang check liquidity và bán khi có lời !!!');
+        monitor.startLiquidity();
+        return;
+    }
+    // Load ví metamask
+    monitor.on('wallet.loaded', (wallet) => {
+        logger.warn("wallet loaded:", wallet)
+    })
+
+    // Liquidity
+    monitor.on('liquidity.on', (trade) => {
+        logger.warn("liquidity changed")
+    })
+
+    // Liquidity change
+    monitor.on('liquidity.timer', async (amount, trade) => {
+        const info = swapper.printTrade("liquidity.timer", amount, trade)
+        //设置当前价格
+        task.swap.currentPrice = info.executionPrice;
+        logger.trace(`swap.price.update: ${task.wallet.outputAmount} / percent:${swapper.getPrc(task.swap.currentPrice).toFixed(5)} / [C=${task.swap.currentPrice},B=${task._buyedPrice}]`) //当前价格
+        if (task._buyedPrice <= 0) return;
+        await swapper.autoSell(task.wallet.outputAmount, info) //自动卖出
+    })
 }
 
 module.exports = { scheduleMonitor };

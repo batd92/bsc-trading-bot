@@ -181,7 +181,7 @@ class Network {
 	 * @returns 
 	 */
 	async getLiquidity(pair) {
-		const bnbValue = await this.contract_in.balanceOf(pair);
+		const bnbValue = await this.contract_in.getLiquidity(pair);
 		const formattedbnbValue = await ethers.utils.formatEther(bnbValue);
 
 		// Testing
@@ -191,6 +191,16 @@ class Network {
 		}
 
 		return formattedbnbValue;
+	}
+
+	/**
+	 * get Price Token Output
+	 * @param {*} pair 
+	 * @returns 
+	 */
+	 async getPriceTokenOutput(pair) {
+		const bnbValue = await this.contract_out.getLiquidity(pair);
+		return await ethers.utils.formatEther(bnbValue);
 	}
 
 	/**
@@ -236,7 +246,7 @@ class Network {
 	 * @param {*} to 
 	 * @returns 
 	 */
-	async transactFromTokenToBNB(from, to, output_balance) {
+	async sellTokens(from, to, output_balance) {
 		msg.primary('✔ Sell ... ');
 		try {
 			console.time('Time-SettingSell');
@@ -266,11 +276,11 @@ class Network {
 			console.timeEnd('Time-SettingSell');
 
 			console.time('Time-sellTokenOnPancakeSwap');
-			const tx = await this.sellTokenOnPancakeSwap(
-				sellAmount[0].toString(),
-				amountOutMin,
-				[from, to]
-			);
+			// const tx = await this.sellTokenOnPancakeSwap(
+			// 	sellAmount[0].toString(),
+			// 	amountOutMin,
+			// 	[from, to]
+			// );
 			console.timeEnd('Time-sellTokenOnPancakeSwap');
 			msg.success(`[debug::transact] ✔ Sell done...... \n`);
 			if (CFG.Environment.isNotNeedTx) return;
@@ -289,7 +299,7 @@ class Network {
 				msg.error(`[error::transact] ${err.error.message}`);
 			} else
 				console.log(err);
-				return this.transactFromTokenToBNB(from, to, output_balance);
+				return this.sellTokens(from, to, output_balance);
 		}
 	}
 

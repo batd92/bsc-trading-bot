@@ -16,6 +16,7 @@ const question = [
             { title: "Auto/manual buy", value: "--buy" },
             { title: "Unicrypt Burn", value: "--unicrypt" },
             { title: "Approve Token", value: "--approve" },
+            { title: "Auto sell by liquidity", value: "--liquidity" },
             { title: "Exit", value: "--exit" },
         ],
         initial: 1,
@@ -46,6 +47,11 @@ const question = [
                 console.clear();
                 console.log("Approve....");
                 await Monitor.scheduleMonitor({ canApprove: true });
+                break;
+            case '--liquidity':
+                console.clear();
+                console.log("Liquidity....");
+                await Monitor.scheduleMonitor({ canLiquidity: true });
                 break;
             case '--exit':
                 console.clear();

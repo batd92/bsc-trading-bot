@@ -69,6 +69,15 @@ class ContractOut {
             console.log('Lỗi Approve: ', error);
         }
     }
+
+    /**
+     * getLiquidity
+     * @param {*} pair 
+     * @returns 
+     */
+     async getLiquidity(pair) {
+        return await this.contract_out.balanceOf(pair);
+    }
 }
 
 module.exports = new ContractOut();

@@ -64,6 +64,15 @@ class ContractIn {
             console.log('Lỗi Approve: ', error);
         }
     }
+
+    /**
+     * getLiquidity
+     * @param {*} pair 
+     * @returns 
+     */
+    async getLiquidity(pair) {
+        return await this.contract_in.balanceOf(pair);
+    }
 }
 
 module.exports = new ContractIn();
