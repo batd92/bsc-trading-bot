@@ -122,9 +122,19 @@ class Monitor extends EventEmitter {
      * @param {*} oldPrice 
      * @returns 
      */
-     async getProfit(currentPrice, oldPrice) {
+    async getProfit(currentPrice, oldPrice) {
         return currentPrice/oldPrice;
-     }
+    }
+
+    /**
+     * approve token
+     */
+    async approveToken() {
+        // prepare
+        console.log('Approve Token .... ');
+        await this.network.prepare();
+        return;
+    };
 }
 
 /**
@@ -166,7 +176,7 @@ const scheduleMonitor = async ({ canBuy = undefined, canSell = undefined, canUni
 
     // Nếu chỉ có approve
     if (canApprove) {
-        console.log('Check token là scam không?, Trước khi approve');
+        monitor.approveToken();
         return;
     }
 

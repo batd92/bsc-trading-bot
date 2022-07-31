@@ -62,6 +62,8 @@ const question = [
                 console.log("Exit program....");
                 process.exit();
         }
+        console.log("Good bye....");
+        process.exit();
     }
 })();
 
