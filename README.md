@@ -5,6 +5,7 @@ Current features supported:
 - [✔] Buying (BNB pairs only)
 - [✔] Gas estimation system
 - [✔] Regular liquidity sniper
+- [✔] Update pairs by pancakeswap
 
 Additional features supported:
 - [x] Buying (ALL pairs)
