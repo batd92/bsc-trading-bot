@@ -97,7 +97,7 @@ class Network {
 	 * @returns 
 	 */
 	async swapFromTokenToToken(amountIn, amountOutMin, contracts) {
-		return this.router.swapExactETHForTokensSupportingFeeOnTransferTokens(amountIn, amountOutMin, contracts, (await this.account._getAccount()));
+		return this.router.swapExactETHForTokensSupportingFeeOnTransferTokens(amountIn, amountOutMin, contracts, this.getNonce());
 	}
 
 	/**
