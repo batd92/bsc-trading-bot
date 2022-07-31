@@ -42,9 +42,13 @@ class ContractOut {
      * Get contract decimals, symbol
      */
     async getDecimalsAndSymbol() {
-        const symbol = await this.contract_out.symbol();
-        const decimals = await this.contract_out.decimals();
-        return { decimals, symbol };
+        try {
+            const symbol = await this.contract_out.symbol();
+            const decimals = await this.contract_out.decimals();
+            return { decimals, symbol };
+        } catch (error) {
+            
+        }
     }
 
     /**

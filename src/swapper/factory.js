@@ -20,6 +20,16 @@ class Factory {
     async _getFactory() {
         return this.factory;
     }
+
+    /**
+     * Get pair
+     * @param {*} contract_in 
+     * @param {*} contract_out 
+     * @returns 
+     */
+    async getPair(contract_in, contract_out) {
+        return this.factory.getPair(contract_in, contract_out)
+    }
 }
 
 module.exports = new Factory();

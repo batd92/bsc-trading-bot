@@ -24,7 +24,7 @@ const Environment = {
 
 const Tokens = {
   'BNB': Until.isAddress(bnbAddress),
-  'TokenSwap': Until.isAddress('0xe9e7cea3dedca5984780bafc599bd69add087d56')
+  'TokenSwap': Until.isAddress('0x67343c29c0fd9827f33e675e0eb80773f9444444')
 };
 
 const CustomStrategyBuy = () =>   {

@@ -212,10 +212,11 @@ class Network {
 	async getPair(contract_in, contract_out, onlyApprove = false) {
 		// Get pair address
 		const pair = cache.getPairFromCache(contract_in, contract_out) || await this.factory.getPair(contract_in, contract_out);
-		if (await this.isPairAddress(pair)) return pair;
+		if (await this.isPairAddress(pair) && !onlyApprove) return pair;
 		// Set pair address to cache
 		cache.setPairAddress(`${contract_in}_${contract_out}`, pair);
 		if (onlyApprove) cache.save();
+		console.log('successful : ',  pair);
 		return pair;
 	}
 

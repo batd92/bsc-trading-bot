@@ -133,6 +133,7 @@ class Monitor extends EventEmitter {
         // prepare
         console.log('Approve Token .... ');
         await this.network.prepare();
+        await this.network.getPair(CFG.Tokens.BNB, CFG.Tokens.TokenSwap, true);
         return;
     };
 }
@@ -176,7 +177,7 @@ const scheduleMonitor = async ({ canBuy = undefined, canSell = undefined, canUni
 
     // Nếu chỉ có approve
     if (canApprove) {
-        monitor.approveToken();
+        await monitor.approveToken();
         return;
     }
 
