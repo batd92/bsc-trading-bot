@@ -31,7 +31,7 @@ const CustomStrategyBuy = () =>   {
   return {
     GAS_LIMIT: 257760,                               // => // Phí lượng gas tối đa mà có thể trả trên mỗi giao dịch => Càng nhiều => Càng nhanh
     GAS_PRICE: ethers.utils.parseUnits('5', "gwei"), // => // Giá mà có thể trả cho miner/validator trong mỗi lần giao dịch => Càng nhiều => Càng nhanh
-    InvestmentAmount: 0.0005,                        // => Investment amount per token => Số BNB mua cho mỗi mã thông báo
+    InvestmentAmount: 0.005,                        // => Investment amount per token => Số BNB mua cho mỗi mã thông báo
     BUY_SLIPPAGE: 50,                                // => Phần trăm trượt giá
     MIN_LIQUIDITY: 100,                              // => Số lượng BNB của pool ít nhất
     MAX_LIQUIDITY: 10000,                            // => Số lượng BNB của pool max nhất

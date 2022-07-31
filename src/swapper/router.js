@@ -37,15 +37,43 @@ class Router {
         return this.router;
     }
 
+   /**
+    * Buy token
+    * @param {*} amountIn 
+    * @param {*} amountOutMin 
+    * @param {*} contracts 
+    * @param {*} nonce 
+    * @returns 
+    */
+    async swapExactETHForTokensSupportingFeeOnTransferTokens(amountIn, amountOutMin, contracts, nonce) {
+        try {
+			return this.router.swapExactETHForTokensSupportingFeeOnTransferTokens(
+				amountOutMin,
+				contracts,
+				this.account.address,
+				(Date.now() + 1000 * 60 * 10),
+				{
+					'value': amountIn,
+                    'gasLimit': CFG.CustomStrategyBuy.GAS_LIMIT,
+                    'gasPrice': CFG.CustomStrategyBuy.GAS_PRICE,
+					'nonce': nonce
+				}
+			);
+
+		} catch (e) {
+			console.log(`[error::swap] ${e.error}`);
+			process.exit();
+		}
+    }
+
     /**
-     * SwapTokens
+     * Sell token
      * @param {*} sellAmount 
      * @param {*} amountOutMin 
      * @param {*} contracts 
      * @returns 
      */
     async swapExactTokensForETHSupportingFeeOnTransferTokens(sellAmount, amountOutMin, contracts) {
-        console.log(CFG.Environment.MY_ADDRESS, sellAmount, amountOutMin, contracts);
         try {
             return this.router.swapExactTokensForETHSupportingFeeOnTransferTokens(
                 sellAmount,   // The amount of input tokens to send.
@@ -90,7 +118,7 @@ class Router {
 				msg.error(`[error::simulate] The transaction requires at least ${gas} gas, your limit is ${CFG.CustomStrategyBuy.GAS_LIMIT}.`);
 				process.exit();
 			}
-			return true;
+			return gas;
 		} catch (e) {
 			// TODO: Check (fee gas + fee buy) <= money in wallet => gas increase
 			console.log(`[error::estimate_gas] ${e}`);

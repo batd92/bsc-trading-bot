@@ -43,10 +43,10 @@ class Monitor extends EventEmitter {
     /**
      * Start wallet
      */
-    startCheckWallet() {
+    async startCheckWallet() {
         this.running = true;
         this.prepare = false;
-        this.monitWallet().then();
+        await this.monitWallet();
     }
 
     /**
@@ -71,25 +71,28 @@ class Monitor extends EventEmitter {
      * Monit Wallet
      */
     async monitWallet() {
-        // Get token 
-        let { outputAmount, raw } = await this.contract_out._getBalance(await this.account._getAccount());
-        let bnb = await this.account._getBalance();
-
-        while (this.running) {
-            await Until.sleep(500);
-            console.clear();
-            Msg.primary('Đang quét ví .... ');
-            Msg.warning(`Số lượng BNB trong ví:  ${bnb}`);
-            Msg.warning(`Số lượng token trong ví: ${outputAmount}`);
-            Msg.warning(`Số lượng token trong ví trước đó: ${this.outputAmount}`);
-            // Truy vấn số token trong ví
-            if (outputAmount !== this.outputAmount && outputAmount > this.outputAmount) {
-                Msg.warning('Đang bán token .... ');
-                this.emit('wallet.update.output_token', { raw, network: this.network });
-                this.outputAmount = outputAmount;
-                this.emit('wallet.loaded');
+        try {
+            // Get token 
+            let { outputAmount, raw } = await this.contract_out._getBalance(await this.account._getAccount());
+            let bnb = await this.account._getBalance();
+            while (this.running) {
+                await Until.sleep(500);
+                console.clear();
+                Msg.primary('Đang quét ví .... ');
+                Msg.warning(`Số lượng BNB trong ví:  ${bnb}`);
+                Msg.warning(`Số lượng token trong ví: ${outputAmount}`);
+                Msg.warning(`Số lượng token trong ví trước đó: ${this.outputAmount}`);
+                // Truy vấn số token trong ví
+                if (outputAmount !== this.outputAmount && outputAmount > this.outputAmount) {
+                    Msg.warning('Đang bán token .... ');
+                    this.emit('wallet.update.output_token', { raw, network: this.network });
+                    this.outputAmount = outputAmount;
+                    this.emit('wallet.loaded');
+                    this.running = false;
+                }
             }
-            this.running = false;
+        } catch (error) {
+            console.log('monitWallet : '+ error);
         }
     }
 
@@ -155,7 +158,7 @@ const scheduleMonitor = async ({ canBuy = undefined, canSell = undefined, canUni
 
     // Nếu chỉ có bán
     if (canSell) {
-        monitor.startCheckWallet();
+        await monitor.startCheckWallet();
 
         // Tự động bán khi đạt đến bội số nhất định
         monitor.on('wallet.update.output_token', async (payload) => {

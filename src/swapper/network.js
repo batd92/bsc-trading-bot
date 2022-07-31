@@ -83,9 +83,6 @@ class Network {
 			} else {
 				msg.success(`[debug::network] ${out.symbol} has already been approved. (cache)`);
 			}
-
-			// Now that the cache is done, restructure variables
-			CFG.CustomStrategyBuy.InvestmentAmount = ethers.utils.parseUnits((CFG.CustomStrategyBuy.InvestmentAmount).toString(), decimals);
 			return true;
 		} catch (error) {
 			console.log('Approve error: ', error);
@@ -100,7 +97,7 @@ class Network {
 	 * @returns 
 	 */
 	async swapFromTokenToToken(amountIn, amountOutMin, contracts) {
-		return this.router.swapExactETHForTokensSupportingFeeOnTransferTokens(amountOutMin, contracts, (await this.account._getAccount()).address, amountIn);
+		return this.router.swapExactETHForTokensSupportingFeeOnTransferTokens(amountIn, amountOutMin, contracts, (await this.account._getAccount()));
 	}
 
 	/**
@@ -123,7 +120,7 @@ class Network {
 	async transactToken(from, to) {
 		msg.success(`[debug::transact] ✔ Buy ... \n`);
 		try {
-			let inputTokenAmount = CFG.CustomStrategyBuy.InvestmentAmount;
+			let inputTokenAmount = ethers.utils.parseUnits((CFG.CustomStrategyBuy.InvestmentAmount).toString(), this.decimalsIn);
 			// Get output amounts
 			let amounts = await this.router.getAmountsOut(inputTokenAmount, [from, to]);
 			// Calculate min output with current slippage in bnb
@@ -278,11 +275,11 @@ class Network {
 			console.timeEnd('Time-SettingSell');
 
 			console.time('Time-sellTokenOnPancakeSwap');
-			// const tx = await this.sellTokenOnPancakeSwap(
-			// 	sellAmount[0].toString(),
-			// 	amountOutMin,
-			// 	[from, to]
-			// );
+			const tx = await this.sellTokenOnPancakeSwap(
+				sellAmount[0].toString(),
+				amountOutMin,
+				[from, to]
+			);
 			console.timeEnd('Time-sellTokenOnPancakeSwap');
 			msg.success(`[debug::transact] ✔ Sell done...... \n`);
 			if (CFG.Environment.isNotNeedTx) return;
@@ -306,7 +303,7 @@ class Network {
 	}
 
 	/**
-	 * Swap Token
+	 * Swap Token (sell)
 	 * @param {*} sellAmount 
 	 * @param {*} amountOutMin 
 	 * @param {*} contracts 
