@@ -9,7 +9,7 @@ const _ = require("lodash");
 const chalk = require('chalk');
 
 const apiPairAddressPancakeSwap = "https://api.pancakeswap.info/api/v2/pairs";
-const pathPairsFormPancakeSwap = "storage.local/pairsFormPancakeSwap.json";
+const pathPairsFormPancakeSwap = "../storage.local/pairsFormPancakeSwap.json";
 
 class PancakeSwap {
   async load() {
