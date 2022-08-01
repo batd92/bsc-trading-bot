@@ -46,7 +46,7 @@ class Monitor extends EventEmitter {
     async startCheckWallet() {
         this.running = true;
         this.prepare = false;
-        await this.monitWallet();
+        this.monitWallet().then();
     }
 
     /**
@@ -79,9 +79,9 @@ class Monitor extends EventEmitter {
                 await Until.sleep(500);
                 console.clear();
                 Msg.primary('Đang quét ví .... ');
-                Msg.warning(`Số lượng BNB trong ví:  ${bnb}`);
-                Msg.warning(`Số lượng token trong ví: ${outputAmount}`);
-                Msg.warning(`Số lượng token trong ví trước đó: ${this.outputAmount}`);
+                Msg.warning(`Số lượng (BNB) trong ví:  ${bnb}`);
+                Msg.warning(`Số lượng token (${CFG.Tokens.TokenSwap}) trong ví: ${outputAmount}`);
+                Msg.warning(`Số lượng token (${CFG.Tokens.TokenSwap}) trong ví trước đó: ${this.outputAmount}`);
                 // Truy vấn số token trong ví
                 if (outputAmount !== this.outputAmount && outputAmount > this.outputAmount) {
                     Msg.warning('Đang bán token .... ');
@@ -169,6 +169,7 @@ const scheduleMonitor = async ({ canBuy = undefined, canSell = undefined, canUni
             await payload.network.sellTokens(CFG.Tokens.TokenSwap, CFG.Tokens.BNB, payload.raw);
             console.timeEnd('time-sell');
         });
+        return;
     }
 
     // Nếu chỉ đốt token
@@ -192,12 +193,12 @@ const scheduleMonitor = async ({ canBuy = undefined, canSell = undefined, canUni
     }
     // Load ví metamask
     monitor.on('wallet.loaded', (wallet) => {
-        logger.warn("wallet loaded:", wallet)
+        console.log("wallet loaded:", wallet)
     })
 
     // Liquidity
     monitor.on('liquidity.on', (trade) => {
-        logger.warn("liquidity changed")
+        console.log("liquidity changed")
     })
 
     // Liquidity change
@@ -205,7 +206,7 @@ const scheduleMonitor = async ({ canBuy = undefined, canSell = undefined, canUni
         const info = swapper.printTrade("liquidity.timer", amount, trade)
         //设置当前价格
         task.swap.currentPrice = info.executionPrice;
-        logger.trace(`swap.price.update: ${task.wallet.outputAmount} / percent:${swapper.getPrc(task.swap.currentPrice).toFixed(5)} / [C=${task.swap.currentPrice},B=${task._buyedPrice}]`) //当前价格
+        console.log(`swap.price.update: ${task.wallet.outputAmount} / percent:${swapper.getPrc(task.swap.currentPrice).toFixed(5)} / [C=${task.swap.currentPrice},B=${task._buyedPrice}]`) //当前价格
         if (task._buyedPrice <= 0) return;
         await swapper.autoSell(task.wallet.outputAmount, info) //自动卖出
     })

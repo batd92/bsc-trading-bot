@@ -248,7 +248,6 @@ class Network {
 	async sellTokens(from, to, output_balance) {
 		msg.primary('✔ Sell ... ');
 		try {
-			console.time('Time-SettingSell');
 			const isProfit = true;
 			// const output_balance = await this.contract_out._getBalanceRaw();
 			if (output_balance === CFG.CustomStrategySell.MIN_AMOUNT)  return;
@@ -267,20 +266,15 @@ class Network {
 			// Get balance to sell current
 			const balanceToSell = ethers.utils.parseUnits(balanceString, decimals);
 			// Get output amounts of token on pancake swap. Includes price current
-			console.time('Time-getAmountsOut');
 			const sellAmount = await this.router.getAmountsOut(balanceToSell, [from, to]);
-			console.timeEnd('Time-getAmountsOut');
 			// Calculate min output with current slippage in bnb
 			const amountOutMin = 0;//sellAmount[1].sub(sellAmount[1].div(2));
-			console.timeEnd('Time-SettingSell');
 
-			console.time('Time-sellTokenOnPancakeSwap');
 			const tx = await this.sellTokenOnPancakeSwap(
 				sellAmount[0].toString(),
 				amountOutMin,
 				[from, to]
 			);
-			console.timeEnd('Time-sellTokenOnPancakeSwap');
 			msg.success(`[debug::transact] ✔ Sell done...... \n`);
 			if (CFG.Environment.isNotNeedTx) return;
 
