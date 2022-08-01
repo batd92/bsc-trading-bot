@@ -72,11 +72,11 @@ class Monitor extends EventEmitter {
      */
     async monitWallet() {
         try {
-            // Get token 
-            let { outputAmount, raw } = await this.contract_out._getBalance(await this.account._getAccount());
-            let bnb = await this.account._getBalance();
             while (this.running) {
                 await Until.sleep(500);
+                // Get token 
+                let { outputAmount, raw } = await this.contract_out._getBalance(await this.account._getAccount());
+                let bnb = await this.account._getBalance();
                 console.clear();
                 Msg.primary('Đang quét ví .... ');
                 Msg.warning(`Số lượng (BNB) trong ví:  ${bnb}`);
@@ -85,10 +85,10 @@ class Monitor extends EventEmitter {
                 // Truy vấn số token trong ví
                 if (outputAmount !== this.outputAmount && outputAmount > this.outputAmount) {
                     Msg.warning('Đang bán token .... ');
-                    this.emit('wallet.update.output_token', { raw, network: this.network });
+                    //this.emit('wallet.update.output_token', { raw, network: this.network });
                     this.outputAmount = outputAmount;
                     this.emit('wallet.loaded');
-                    this.running = false;
+                    // this.running = false;
                 }
             }
         } catch (error) {
