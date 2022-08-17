@@ -26,7 +26,7 @@ class Monitor extends EventEmitter {
         this.contract_out = contract_out;
         this.router = router;
         this.network = {};
-        this.outputAmount = 0;
+        this.outputAmount = CFG.Environment.MinimumQuantityForSell;
     }
 
     async load() {
@@ -83,12 +83,12 @@ class Monitor extends EventEmitter {
                 Msg.warning(`Số lượng token (${CFG.Tokens.TokenSwap}) trong ví: ${outputAmount}`);
                 Msg.warning(`Số lượng token (${CFG.Tokens.TokenSwap}) trong ví trước đó: ${this.outputAmount}`);
                 // Truy vấn số token trong ví
-                if (outputAmount !== this.outputAmount && outputAmount > this.outputAmount) {
+                if (outputAmount !== this.outputAmount && outputAmount > CFG.Environment.MinimumQuantityForSell) {
                     Msg.warning('Đang bán token .... ');
-                    //this.emit('wallet.update.output_token', { raw, network: this.network });
+                    this.emit('wallet.update.output_token', { raw, network: this.network });
                     this.outputAmount = outputAmount;
                     this.emit('wallet.loaded');
-                    // this.running = false;
+                    this.running = false;
                 }
             }
         } catch (error) {

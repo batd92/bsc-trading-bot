@@ -19,7 +19,8 @@ const Environment = {
   MY_ADDRESS: '0x1370715e3c4B4dda15DF6d15140D90faF521FeCf',
   modeManual: '',
   isNotNeedTx: true,                                    // Chỉ định có lấy link tx không ?
-  AlwaysRunning: false
+  AlwaysRunning: false,
+  MinimumQuantityForSell: 0, // => Số lượng tối thiểu token có trong ví để bán
 };
 
 const Tokens = {
