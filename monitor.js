@@ -56,6 +56,13 @@ class Monitor extends EventEmitter {
         this.runCheckLiquidity = true;
         this.monitLiquidity().then();
     }
+    /**
+     * Burn token
+     */
+    burnUnicrypt() {
+        this.isBurnUnicrypt = true;
+        this.monitBurnUnicrypt().then();
+    }
 
     /**
      * Run
@@ -92,7 +99,7 @@ class Monitor extends EventEmitter {
                 }
             }
         } catch (error) {
-            console.log('monitWallet : '+ error);
+            console.log('monitWallet : ' + error);
         }
     }
 
@@ -108,6 +115,17 @@ class Monitor extends EventEmitter {
         }
     }
 
+    /**
+     * Burn token
+     */
+    async monitBurnUnicrypt() {
+        while (this.isBurnUnicrypt) {
+            const bnb = await this.network.getLiquidity('0x58F876857a02D6762E0101bb5C46A8c1ED44Dc16');
+            const priceBusd = await this.network.getPriceTokenOutput('0x58F876857a02D6762E0101bb5C46A8c1ED44Dc16');
+            console.log('bnb monit liquidity ', bnb, priceBusd);
+            // Check nếu có sự thay đổi về liquidity thì bán token
+        }
+    }
     /**
      * Auto buy token
      */
@@ -126,7 +144,7 @@ class Monitor extends EventEmitter {
      * @returns 
      */
     async getProfit(currentPrice, oldPrice) {
-        return currentPrice/oldPrice;
+        return currentPrice / oldPrice;
     }
 
     /**
@@ -174,7 +192,7 @@ const scheduleMonitor = async ({ canBuy = undefined, canSell = undefined, canUni
 
     // Nếu chỉ đốt token
     if (canUnicrypt) {
-        monitor.startLiquidity();
+        monitor.burnUnicrypt();
         console.log('burn token, check số lượng người bán và số lượng token burn');
         return;
     }
