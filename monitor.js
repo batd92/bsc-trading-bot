@@ -16,6 +16,10 @@ const { Network } = require('./src/swapper/network');
 const EventEmitter = require('events').EventEmitter;
 const Msg = require('./src/classes/msg');
 
+// Lấy số luồng trong máy tính và ép ứng dụng chạy tài nguyênß
+const os = require('os');
+process.env.UV_THREADPOOL_SIZE = os.cpus().length - 1;
+
 // Main
 class Monitor extends EventEmitter {
     constructor(account, factory, contract_in, contract_out, router) {
