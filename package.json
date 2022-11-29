@@ -11,6 +11,7 @@
   },
   "devDependencies": {
     "chalk": "^4.1.2",
+    "dotenv": "^16.0.3",
     "ethers": "^5.5.1",
     "isomorphic-fetch": "3.0.0",
     "lodash": "4.17.21",

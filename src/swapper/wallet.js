@@ -66,7 +66,15 @@ class Wallet {
 		this.nonce_offset++;
 		return nonce;
     }
-
+    
+    /**
+     * Try nonce
+     */
+    async tryNonce() {
+        this.base_nonce = parseInt(await this.node.getTransactionCount(this.account.address));    
+        this.nonce_offset = 0;
+        this.first_block = -1;
+    }
 }
 
 module.exports = new Wallet();

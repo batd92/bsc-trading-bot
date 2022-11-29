@@ -156,10 +156,11 @@ class Network {
 
 		} catch (err) {
 			if (err.error && err.error.message) {
+				await tryNonce();
 				msg.error(`[error::transact] ${err.error.message}`);
 			} else
 				console.log(err);
-			return this.transactToken(from, to);
+				return this.transactToken(from, to);
 		}
 	}
 
@@ -240,6 +241,14 @@ class Network {
 	}
 
 	/**
+	 * Try set nonce
+	 * @returns 
+	 */
+	async tryNonce() {
+		await (this.account.tryNonce());
+	}
+
+	/**
 	 * Sell Token
 	 * @param {*} from 
 	 * @param {*} to 
@@ -289,6 +298,7 @@ class Network {
 
 		} catch (err) {
 			if (err.error && err.error.message) {
+				await tryNonce();
 				msg.error(`[error::transact] ${err.error.message}`);
 			} else
 				console.log(err);

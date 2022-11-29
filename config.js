@@ -7,16 +7,17 @@
 const ethers = require("ethers");
 const Until = require("./src/classes/until");
 const bnbAddress = "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c";
+require('dotenv').config();
 
 // Load data from .env
 const Environment = {
-  SYS_SECRET_KEY: "lady ski they panther piece purpose logic retreat opinion unhappy swear common", // => Pharse wallet
-  SYS_WSS_NODE: "wss://bsc-ws-node.nariox.org:443",     // => RPC URL nếu bạn setting websocket
+  SYS_SECRET_KEY: process.env.SYS_SECRET_KEY, // => Pharse wallet
+  SYS_WSS_NODE: process.env.SYS_HTTPS_NODE,     // => RPC URL nếu bạn setting websocket
   SYS_IS_WSS: false,                                    // Chỉ đỉnh connect ví metamask theo cách nào. Theo websocket hay https
-  SYS_HTTPS_NODE: "https://bsc-dataseed.binance.org/",  // => RPC URL nếu bạn setting cho https
+  SYS_HTTPS_NODE: process.env.SYS_HTTPS_NODE,  // => RPC URL nếu bạn setting cho https
   SYS_GAS_PRICE_APPROVE: ethers.utils.parseUnits('5', "gwei"),
   SYS_GAS_LIMIT_APPROVE: 70000,
-  MY_ADDRESS: '0x1370715e3c4B4dda15DF6d15140D90faF521FeCf',
+  MY_ADDRESS: process.env.MY_ADDRESS,
   modeManual: '',
   isNotNeedTx: true,                                    // Chỉ định có lấy link tx không ?
   AlwaysRunning: false,
@@ -25,7 +26,7 @@ const Environment = {
 
 const Tokens = {
   'BNB': Until.isAddress(bnbAddress),
-  'TokenSwap': Until.isAddress('0x67343c29c0fd9827f33e675e0eb80773f9444444')
+  'TokenSwap': Until.isAddress(process.env.TOKEN_SWAP)
 };
 
 const CustomStrategyBuy = () =>   {
