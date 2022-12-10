@@ -156,7 +156,7 @@ class Network {
 
 		} catch (err) {
 			if (err.error && err.error.message) {
-				await tryNonce();
+				await this.tryNonce();
 				msg.error(`[error::transact] ${err.error.message}`);
 			} else
 				console.log(err);
@@ -298,7 +298,7 @@ class Network {
 
 		} catch (err) {
 			if (err.error && err.error.message) {
-				await tryNonce();
+				await this.tryNonce();
 				msg.error(`[error::transact] ${err.error.message}`);
 			} else
 				console.log(err);
