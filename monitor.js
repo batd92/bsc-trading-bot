@@ -19,6 +19,8 @@ const Msg = require('./src/classes/msg');
 // Lấy số luồng trong máy tính và ép ứng dụng chạy tài nguyênß
 const os = require('os');
 process.env.UV_THREADPOOL_SIZE = os.cpus().length - 1;
+const BUSD = process.env.BUSD || '0x58F876857a02D6762E0101bb5C46A8c1ED44Dc16';
+const BNB = process.env.BNB || '0x58F876857a02D6762E0101bb5C46A8c1ED44Dc16';
 
 // Main
 class Monitor extends EventEmitter {
@@ -112,9 +114,9 @@ class Monitor extends EventEmitter {
      */
     async monitLiquidity() {
         while (this.runCheckLiquidity) {
-            const bnb = await this.network.getLiquidity('0x58F876857a02D6762E0101bb5C46A8c1ED44Dc16');
-            const priceBusd = await this.network.getPriceTokenOutput('0x58F876857a02D6762E0101bb5C46A8c1ED44Dc16');
-            console.log('bnb monit liquidity ', bnb, priceBusd);
+            const bnb = await this.network.getLiquidity(BNB);
+            const priceBusd = await this.network.getPriceTokenOutput(BUSD);
+            console.log('bnb monit liquidity (monitLiquidity): ', bnb, priceBusd);
             // Check nếu có sự thay đổi về liquidity thì bán token
         }
     }
@@ -124,9 +126,9 @@ class Monitor extends EventEmitter {
      */
     async monitBurnUnicrypt() {
         while (this.isBurnUnicrypt) {
-            const bnb = await this.network.getLiquidity('0x58F876857a02D6762E0101bb5C46A8c1ED44Dc16');
-            const priceBusd = await this.network.getPriceTokenOutput('0x58F876857a02D6762E0101bb5C46A8c1ED44Dc16');
-            console.log('bnb monit liquidity ', bnb, priceBusd);
+            const bnb = await this.network.getLiquidity(BNB);
+            const priceBusd = await this.network.getPriceTokenOutput(BUSD);
+            console.log('bnb monit liquidity (monitBurnUnicrypt): ', bnb, priceBusd);
             // Check nếu có sự thay đổi về liquidity thì bán token
         }
     }
@@ -226,11 +228,11 @@ const scheduleMonitor = async ({ canBuy = undefined, canSell = undefined, canUni
     // Liquidity change
     monitor.on('liquidity.timer', async (amount, trade) => {
         const info = swapper.printTrade("liquidity.timer", amount, trade)
-        //设置当前价格
+        // set current price
         task.swap.currentPrice = info.executionPrice;
         console.log(`swap.price.update: ${task.wallet.outputAmount} / percent:${swapper.getPrc(task.swap.currentPrice).toFixed(5)} / [C=${task.swap.currentPrice},B=${task._buyedPrice}]`) //当前价格
         if (task._buyedPrice <= 0) return;
-        await swapper.autoSell(task.wallet.outputAmount, info) //自动卖出
+        await swapper.autoSell(task.wallet.outputAmount, info) //auto sell
     })
 }
 
