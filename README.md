@@ -21,3 +21,13 @@ Additional features supported:
 - [x] Block-offset system
 - [x] Auto updates (updates are done automatically without the need of a re-download)
 - [x] Trailing auto-sell.
+
+#TODO
+
+- check rug
+- check risk
+- check pool
+- connect telegram
+- analytics
+- build multi wallet
+- struct database
